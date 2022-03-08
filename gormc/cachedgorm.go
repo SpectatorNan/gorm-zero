@@ -1,12 +1,11 @@
 package gormc
 
 import (
-	"backend_zero/app/gorm-zero/gormx"
 	"database/sql"
-	"github.com/tal-tech/go-zero/core/stores/cache"
-	"github.com/tal-tech/go-zero/core/stores/redis"
-	"github.com/tal-tech/go-zero/core/stores/sqlx"
-	"github.com/tal-tech/go-zero/core/syncx"
+	"github.com/SpectatorNan/gorm-zero/gormx"
+	"github.com/zeromicro/go-zero/core/stores/cache"
+	"github.com/zeromicro/go-zero/core/stores/redis"
+	"github.com/zeromicro/go-zero/core/syncx"
 	"gorm.io/gorm"
 	"time"
 )
@@ -80,23 +79,9 @@ func (cc CachedConn) Exec(exec ExecFn, keys ...string) (sql.Result, error) {
 	return res, nil
 }
 
-// Exec runs given exec on given keys, and returns execution result.
-func (cc CachedConn) Exec(exec ExecFn, keys ...string) (sql.Result, error) {
-	res, err := exec(cc.db)
-	if err != nil {
-		return nil, err
-	}
-
-	if err := cc.DelCache(keys...); err != nil {
-		return nil, err
-	}
-
-	return res, nil
-}
-
 // ExecNoCache runs exec with given sql statement, without affecting cache.
-func (cc CachedConn) ExecNoCache(q string, args ...interface{}) (sql.Result, error) {
-	return cc.db.Exec(q, args...)
+func (cc CachedConn) ExecNoCache(exec ExecFn) (sql.Result, error) {
+	return exec(cc.db)
 }
 
 // QueryRow unmarshals into v with given key and query func.
@@ -135,7 +120,7 @@ func (cc CachedConn) QueryRowIndex(v interface{}, key string, keyer func(primary
 
 // QueryRowNoCache unmarshals into v with given statement.
 func (cc CachedConn) QueryRowNoCache(v interface{}, q string, args ...interface{}) error {
-	return cc.db.QueryRow(v, q, args...)
+	return gorm.DB(cc.db).Model() //QueryRow(v, q, args...)
 }
 
 // QueryRowsNoCache unmarshals into v with given statement.
