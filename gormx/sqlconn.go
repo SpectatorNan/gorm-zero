@@ -2,4 +2,4 @@ package gormx
 
 import "gorm.io/gorm"
 
-type SqlConn gorm.DB
+type SqlConn *gorm.DB

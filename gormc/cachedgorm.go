@@ -2,7 +2,6 @@ package gormc
 
 import (
 	"database/sql"
-	"github.com/SpectatorNan/gorm-zero/gormx"
 	"github.com/zeromicro/go-zero/core/stores/cache"
 	"github.com/zeromicro/go-zero/core/stores/redis"
 	"github.com/zeromicro/go-zero/core/syncx"
@@ -25,22 +24,22 @@ var (
 type (
 
 	// ExecFn defines the sql exec method.
-	ExecFn func(conn gormx.SqlConn) (sql.Result, error)
+	ExecFn func(conn *gorm.DB) *gorm.DB
 	// IndexQueryFn defines the query method that based on unique indexes.
-	IndexQueryFn func(conn gormx.SqlConn, v interface{}) (interface{}, error)
+	IndexQueryFn func(conn gorm.DB, v interface{}) (interface{}, error)
 	// PrimaryQueryFn defines the query method that based on primary keys.
-	PrimaryQueryFn func(conn gormx.SqlConn, v, primary interface{}) error
+	PrimaryQueryFn func(conn gorm.DB, v, primary interface{}) error
 	// QueryFn defines the query method.
-	QueryFn func(conn gormx.SqlConn, v interface{}) error
+	QueryFn func(conn gorm.DB, v interface{}) error
 
 	CachedConn struct {
-		db    gormx.SqlConn
+		db    *gorm.DB
 		cache cache.Cache
 	}
 )
 
 // NewNodeConn returns a CachedConn with a redis node cache.
-func NewNodeConn(db gormx.SqlConn, rds *redis.Redis, opts ...cache.Option) CachedConn {
+func NewNodeConn(db *gorm.DB, rds *redis.Redis, opts ...cache.Option) CachedConn {
 	return CachedConn{
 		db:    db,
 		cache: cache.NewNode(rds, exclusiveCalls, stats, sql.ErrNoRows, opts...),
@@ -48,7 +47,7 @@ func NewNodeConn(db gormx.SqlConn, rds *redis.Redis, opts ...cache.Option) Cache
 }
 
 // NewConn returns a CachedConn with a redis cluster cache.
-func NewConn(db gormx.SqlConn, c cache.CacheConf, opts ...cache.Option) CachedConn {
+func NewConn(db gorm.DB, c cache.CacheConf, opts ...cache.Option) CachedConn {
 	return CachedConn{
 		db:    db,
 		cache: cache.New(c, exclusiveCalls, stats, sql.ErrNoRows, opts...),
@@ -66,22 +65,22 @@ func (cc CachedConn) GetCache(key string, v interface{}) error {
 }
 
 // Exec runs given exec on given keys, and returns execution result.
-func (cc CachedConn) Exec(exec ExecFn, keys ...string) (sql.Result, error) {
-	res, err := exec(cc.db)
+func (cc CachedConn) Exec(exec ExecFn, keys ...string) error {
+	err := exec(cc.db).Error
 	if err != nil {
-		return nil, err
+		return err
 	}
 
 	if err := cc.DelCache(keys...); err != nil {
-		return nil, err
+		return err
 	}
 
-	return res, nil
+	return nil
 }
 
 // ExecNoCache runs exec with given sql statement, without affecting cache.
-func (cc CachedConn) ExecNoCache(exec ExecFn) (sql.Result, error) {
-	return exec(cc.db)
+func (cc CachedConn) ExecNoCache(exec ExecFn) error {
+	return exec(cc.db).Error
 }
 
 // QueryRow unmarshals into v with given key and query func.
@@ -119,14 +118,14 @@ func (cc CachedConn) QueryRowIndex(v interface{}, key string, keyer func(primary
 }
 
 // QueryRowNoCache unmarshals into v with given statement.
-func (cc CachedConn) QueryRowNoCache(v interface{}, q string, args ...interface{}) error {
-	return gorm.DB(cc.db).Model() //QueryRow(v, q, args...)
+func (cc CachedConn) QueryRowNoCache(model, v interface{}, fn ExecFn) error {
+	return fn(cc.db.Model(model)).First(&v).Error
 }
 
 // QueryRowsNoCache unmarshals into v with given statement.
 // It doesn't use cache, because it might cause consistency problem.
-func (cc CachedConn) QueryRowsNoCache(v interface{}, q string, args ...interface{}) error {
-	return cc.db.QueryRows(v, q, args...)
+func (cc CachedConn) QueryRowsNoCache(model, v interface{}, fn ExecFn) error {
+	return fn(cc.db.Model(model)).Find(v).Error
 }
 
 // SetCache sets v into cache with given key.
@@ -135,6 +134,6 @@ func (cc CachedConn) SetCache(key string, v interface{}) error {
 }
 
 // Transact runs given fn in transaction mode.
-func (cc CachedConn) Transact(fn func(gormx.Session) error) error {
-	return cc.db.Transact(fn)
-}
+//func (cc CachedConn) Transact(fn func(gormx.Session) error) error {
+//	return cc.db.Transact(fn)
+//}
