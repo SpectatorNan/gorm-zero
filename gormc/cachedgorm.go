@@ -26,11 +26,11 @@ type (
 	// ExecFn defines the sql exec method.
 	ExecFn func(conn *gorm.DB) *gorm.DB
 	// IndexQueryFn defines the query method that based on unique indexes.
-	IndexQueryFn func(conn gorm.DB, v interface{}) (interface{}, error)
+	IndexQueryFn func(conn *gorm.DB, v interface{}) (interface{}, error)
 	// PrimaryQueryFn defines the query method that based on primary keys.
-	PrimaryQueryFn func(conn gorm.DB, v, primary interface{}) error
+	PrimaryQueryFn func(conn *gorm.DB, v, primary interface{}) error
 	// QueryFn defines the query method.
-	QueryFn func(conn gorm.DB, v interface{}) error
+	QueryFn func(conn *gorm.DB, v interface{}) *gorm.DB
 
 	CachedConn struct {
 		db    *gorm.DB
@@ -38,20 +38,24 @@ type (
 	}
 )
 
-// NewNodeConn returns a CachedConn with a redis node cache.
-func NewNodeConn(db *gorm.DB, rds *redis.Redis, opts ...cache.Option) CachedConn {
+// NewConn returns a CachedConn with a redis cluster cache.
+func NewConn(db *gorm.DB, c cache.CacheConf, opts ...cache.Option) CachedConn {
+	cc := cache.New(c, exclusiveCalls, stats, sql.ErrNoRows, opts...)
+	return NewConnWithCache(db, cc)
+}
+
+// NewConnWithCache returns a CachedConn with a custom cache.
+func NewConnWithCache(db *gorm.DB, c cache.Cache) CachedConn {
 	return CachedConn{
 		db:    db,
-		cache: cache.NewNode(rds, exclusiveCalls, stats, sql.ErrNoRows, opts...),
+		cache: c,
 	}
 }
 
-// NewConn returns a CachedConn with a redis cluster cache.
-func NewConn(db gorm.DB, c cache.CacheConf, opts ...cache.Option) CachedConn {
-	return CachedConn{
-		db:    db,
-		cache: cache.New(c, exclusiveCalls, stats, sql.ErrNoRows, opts...),
-	}
+// NewNodeConn returns a CachedConn with a redis node cache.
+func NewNodeConn(db *gorm.DB, rds *redis.Redis, opts ...cache.Option) CachedConn {
+	cc := cache.NewNode(rds, exclusiveCalls, stats, sql.ErrNoRows, opts...)
+	return NewConnWithCache(db, cc)
 }
 
 // DelCache deletes cache with keys.
@@ -86,7 +90,7 @@ func (cc CachedConn) ExecNoCache(exec ExecFn) error {
 // QueryRow unmarshals into v with given key and query func.
 func (cc CachedConn) QueryRow(v interface{}, key string, query QueryFn) error {
 	return cc.cache.Take(v, key, func(v interface{}) error {
-		return query(cc.db, v)
+		return query(cc.db, v).Error
 	})
 }
 
@@ -134,6 +138,6 @@ func (cc CachedConn) SetCache(key string, v interface{}) error {
 }
 
 // Transact runs given fn in transaction mode.
-//func (cc CachedConn) Transact(fn func(gormx.Session) error) error {
-//	return cc.db.Transact(fn)
-//}
+func (cc CachedConn) Transact(fn func(db *gorm.DB) error, opts ...*sql.TxOptions) error {
+	return cc.db.Transaction(fn, opts...)
+}
