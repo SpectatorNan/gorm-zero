@@ -40,7 +40,7 @@ type (
 
 // NewConn returns a CachedConn with a redis cluster cache.
 func NewConn(db *gorm.DB, c cache.CacheConf, opts ...cache.Option) CachedConn {
-	cc := cache.New(c, exclusiveCalls, stats, sql.ErrNoRows, opts...)
+	cc := cache.New(c, exclusiveCalls, stats, ErrNotFound, opts...)
 	return NewConnWithCache(db, cc)
 }
 
@@ -54,7 +54,7 @@ func NewConnWithCache(db *gorm.DB, c cache.Cache) CachedConn {
 
 // NewNodeConn returns a CachedConn with a redis node cache.
 func NewNodeConn(db *gorm.DB, rds *redis.Redis, opts ...cache.Option) CachedConn {
-	cc := cache.NewNode(rds, exclusiveCalls, stats, sql.ErrNoRows, opts...)
+	cc := cache.NewNode(rds, exclusiveCalls, stats, ErrNotFound, opts...)
 	return NewConnWithCache(db, cc)
 }
 
