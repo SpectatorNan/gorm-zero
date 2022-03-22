@@ -30,7 +30,7 @@ type (
 	// PrimaryQueryFn defines the query method that based on primary keys.
 	PrimaryQueryFn func(conn *gorm.DB, v, primary interface{}) error
 	// QueryFn defines the query method.
-	QueryFn func(conn *gorm.DB, v interface{}) *gorm.DB
+	QueryFn func(conn *gorm.DB) *gorm.DB
 
 	CachedConn struct {
 		db    *gorm.DB
@@ -90,7 +90,7 @@ func (cc CachedConn) ExecNoCache(exec ExecFn) error {
 // QueryRow unmarshals into v with given key and query func.
 func (cc CachedConn) QueryRow(v interface{}, key string, query QueryFn) error {
 	return cc.cache.Take(v, key, func(v interface{}) error {
-		return query(cc.db, v).Error
+		return query(cc.db).First(v).Error
 	})
 }
 
@@ -122,8 +122,8 @@ func (cc CachedConn) QueryRowIndex(v interface{}, key string, keyer func(primary
 }
 
 // QueryRowNoCache unmarshals into v with given statement.
-func (cc CachedConn) QueryRowNoCache(model, v interface{}, fn ExecFn) error {
-	return fn(cc.db.Model(model)).First(&v).Error
+func (cc CachedConn) QueryRowNoCache(v interface{}, fn ExecFn) error {
+	return fn(cc.db.Model(v)).First(v).Error
 }
 
 // QueryRowsNoCache unmarshals into v with given statement.
