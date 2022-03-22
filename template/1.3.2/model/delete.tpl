@@ -9,6 +9,6 @@ func (m *default{{.upperStartCamelObject}}Model) Delete({{.lowerStartCamelPrimar
     _, err {{if .containsIndexCache}}={{else}}:={{end}} m.Exec(func(conn *gorm.DB) *gorm.DB {
         return conn.Delete(&{{.upperStartCamelObject}}{}, {{.lowerStartCamelPrimaryKey}})
 	}, {{.keyValues}}){{else}}query := fmt.Sprintf("delete from %s where {{.originalPrimaryKey}} = {{if .postgreSql}}$1{{else}}?{{end}}", m.table)
-		_,err:=m.conn.Exec(query, {{.lowerStartCamelPrimaryKey}}){{end}}
+		_,err:=m.conn.Delete(&{{.upperStartCamelObject}}{}, {{.lowerStartCamelPrimaryKey}}){{end}}
 	return err
 }
