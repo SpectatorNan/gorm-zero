@@ -1,1 +1,1 @@
-{{.name}} {{.type}} {{.tag}} {{if .hasComment}}// {{.comment}}{{end}}
+{{.name}} {{.type}} {{if .hasComment}}// {{.comment}}{{end}}
