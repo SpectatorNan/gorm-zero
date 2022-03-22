@@ -1,0 +1,1 @@
+Insert(data *{{.upperStartCamelObject}}) (sql.Result,error)

@@ -1,0 +1,1 @@
+Delete({{.lowerStartCamelPrimaryKey}} {{.dataType}}) error
