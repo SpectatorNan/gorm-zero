@@ -1,10 +1,11 @@
 
 func (m *default{{.upperStartCamelObject}}Model) Update(data *{{.upperStartCamelObject}}) error {
 	{{if .withCache}}{{.keys}}
-    _, err := m.Exec(func(conn sqlx.SqlConn) (result sql.Result, err error) {
-		query := fmt.Sprintf("update %s set %s where {{.originalPrimaryKey}} = {{if .postgreSql}}$1{{else}}?{{end}}", m.table, {{.lowerStartCamelObject}}RowsWithPlaceHolder)
-		return conn.Exec(query, {{.expressionValues}})
-	}, {{.keyValues}}){{else}}query := fmt.Sprintf("update %s set %s where {{.originalPrimaryKey}} = {{if .postgreSql}}$1{{else}}?{{end}}", m.table, {{.lowerStartCamelObject}}RowsWithPlaceHolder)
-    _,err:=m.conn.Exec(query, {{.expressionValues}}){{end}}
+    err := m.Exec(func(conn *gorm.DB) *gorm.DB {
+    		return conn.Save(data)
+    	}, {{.keyValues}}){{else}}
+    err:=m.ExecNoCache(func(conn *gorm.DB) *gorm.DB {
+             		return conn.Save(data)
+             	}){{end}}
 	return err
 }

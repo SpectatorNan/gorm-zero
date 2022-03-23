@@ -5,8 +5,7 @@ type (
 	}
 
 	default{{.upperStartCamelObject}}Model struct {
-		{{if .withCache}}sqlc.CachedConn{{else}}conn sqlx.SqlConn{{end}}
-		table string
+		{{if .withCache}}gormc.CachedConn{{else}}gormc.CachedConn{{end}}
 	}
 
 	{{.upperStartCamelObject}} struct {
