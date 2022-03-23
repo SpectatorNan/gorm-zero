@@ -2,7 +2,7 @@
 func (m *default{{.upperStartCamelObject}}Model) FindOne({{.lowerStartCamelPrimaryKey}} {{.dataType}}) (*{{.upperStartCamelObject}}, error) {
 	{{if .withCache}}{{.cacheKey}}
 	var resp {{.upperStartCamelObject}}
-	err := m.QueryRow(&resp, {{.cacheKeyVariable}}, func(conn *gorm.DB, v interface{}) *gorm.DB {
+	err := m.QueryRow(&resp, {{.cacheKeyVariable}}, func(conn *gorm.DB) *gorm.DB {
 		return conn.Model(&{{.upperStartCamelObject}}{}).Where("{{.originalPrimaryKey}} = ?", {{.lowerStartCamelPrimaryKey}})
 	})
 	switch err {

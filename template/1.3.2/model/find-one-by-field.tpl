@@ -12,7 +12,7 @@ func (m *default{{.upperStartCamelObject}}Model) FindOneBy{{.upperField}}({{.in}
 	switch err {
 	case nil:
 		return &resp, nil
-	case sqlc.ErrNotFound:
+	case gorm.ErrRecordNotFound:
 		return nil, ErrNotFound
 	default:
 		return nil, err
@@ -23,7 +23,7 @@ func (m *default{{.upperStartCamelObject}}Model) FindOneBy{{.upperField}}({{.in}
 	switch err {
 	case nil:
 		return &resp, nil
-	case sqlc.ErrNotFound:
+	case gorm.ErrRecordNotFound:
 		return nil, ErrNotFound
 	default:
 		return nil, err
