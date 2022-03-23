@@ -1,12 +1,14 @@
 
-func (m *default{{.upperStartCamelObject}}Model) Insert(data *{{.upperStartCamelObject}}) (sql.Result,error) {
+func (m *default{{.upperStartCamelObject}}Model) Insert(data *{{.upperStartCamelObject}}) error {
 	{{if .withCache}}{{if .containsIndexCache}}{{.keys}}
-    ret, err := m.Exec(func(conn sqlx.SqlConn) (result sql.Result, err error) {
-		query := fmt.Sprintf("insert into %s (%s) values ({{.expression}})", m.table, {{.lowerStartCamelObject}}RowsExpectAutoSet)
-		return conn.Exec(query, {{.expressionValues}})
-	}, {{.keyValues}}){{else}}query := fmt.Sprintf("insert into %s (%s) values ({{.expression}})", m.table, {{.lowerStartCamelObject}}RowsExpectAutoSet)
-    ret,err:=m.ExecNoCache(query, {{.expressionValues}})
-	{{end}}{{else}}query := fmt.Sprintf("insert into %s (%s) values ({{.expression}})", m.table, {{.lowerStartCamelObject}}RowsExpectAutoSet)
-    ret,err:=m.conn.Exec(query, {{.expressionValues}}){{end}}
-	return ret,err
+    err := m.Exec(func(conn *gorm.DB) *gorm.DB {
+                       		return conn.Save(data)
+                       	}, {{.keyValues}}){{else}}
+	err:=m.ExecNoCache(func(conn *gorm.DB) *gorm.DB {
+                                return conn.Save(data)
+                              }){{end}}{{else}}
+    err:=m.ExecNoCache(func(conn *gorm.DB) *gorm.DB {
+                               		return conn.Save(data)
+                               	}){{end}}
+	return err
 }
