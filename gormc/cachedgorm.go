@@ -135,11 +135,11 @@ func (cc CachedConn) QueryRow(v interface{}, key string, query QueryFn) error {
 	quertCtx := func(conn *gorm.DB) *gorm.DB {
 		return query(conn)
 	}
-	return cc.QueryCtxRow(context.Background(), v, key, quertCtx)
+	return cc.QueryRowCtx(context.Background(), v, key, quertCtx)
 }
 
-// QueryCtxRow unmarshals into v with given key and query func.
-func (cc CachedConn) QueryCtxRow(ctx context.Context, v interface{}, key string, query QueryCtxFn) error {
+// QueryRowCtx unmarshals into v with given key and query func.
+func (cc CachedConn) QueryRowCtx(ctx context.Context, v interface{}, key string, query QueryCtxFn) error {
 	ctx, span := startSpan(ctx)
 	defer span.End()
 	return cc.cache.TakeCtx(ctx, v, key, func(v interface{}) error {

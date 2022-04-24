@@ -11,6 +11,6 @@ func (m *default{{.upperStartCamelObject}}Model) Delete({{.lowerStartCamelPrimar
 	}, {{.keyValues}}){{else}}
 		err:=m.CachedConn.ExecNoCache(func(conn *gorm.DB) *gorm.DB {
 		    return conn.Delete(&{{.upperStartCamelObject}}{}, {{.lowerStartCamelPrimaryKey}})
-		}{{end}}
+		}){{end}}
 	return err
 }
