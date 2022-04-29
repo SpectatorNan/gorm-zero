@@ -9,7 +9,7 @@
 ```shell
 go get github.com/SpectatorNan/gorm-zero
 ```
-- replace  template/model in your project with gorm-zero/template/<goctl version>/model
+- replace  template/model in your project with gorm-zero/template/{goctl version}/model
 - generate
 ```shell
 goctl model mysql -src={patterns} -dir={dir} -cache --home ./template
