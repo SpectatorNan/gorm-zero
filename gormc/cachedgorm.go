@@ -218,6 +218,11 @@ func (cc CachedConn) SetCacheCtx(ctx context.Context, key string, val interface{
 	return cc.cache.SetCtx(ctx, key, val)
 }
 
+// SetCacheWithExpireCtx sets v into cache with given key.
+func (cc CachedConn) SetCacheWithExpireCtx(ctx context.Context, key string, val interface{}, expire time.Duration) error {
+	return cc.cache.SetWithExpireCtx(ctx, key, val, expire)
+}
+
 // Transact runs given fn in transaction mode.
 func (cc CachedConn) Transact(fn func(db *gorm.DB) error, opts ...*sql.TxOptions) error {
 	return cc.TransactCtx(context.Background(), fn, opts...)
