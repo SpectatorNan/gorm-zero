@@ -48,6 +48,8 @@ type (
 	QueryFn func(conn *gorm.DB) *gorm.DB
 	// QueryCtxFn defines the query method.
 	QueryCtxFn func( /*ctx context.Context,*/ conn *gorm.DB) *gorm.DB
+	// AssociationReplaceFn
+	AssociationReplaceFn func(conn *gorm.DB) *gorm.Association
 
 	CachedConn struct {
 		db    *gorm.DB
@@ -103,6 +105,17 @@ func (cc CachedConn) Exec(exec ExecFn, keys ...string) error {
 	return cc.ExecCtx(context.Background(), execCtx, keys...)
 }
 
+func (cc CachedConn) ExecReplaceCtx(ctx context.Context, values interface{}, execCtx AssociationReplaceFn, keys ...string) error {
+	err := execCtx(cc.db.WithContext(ctx)).Replace(values)
+	if err != nil {
+		return err
+	}
+	if err := cc.DelCacheCtx(ctx, keys...); err != nil {
+		return err
+	}
+	return nil
+}
+
 // ExecCtx runs given exec on given keys, and returns execution result.
 func (cc CachedConn) ExecCtx(ctx context.Context, execCtx ExecCtxFn, keys ...string) error {
 	err := execCtx(cc.db.WithContext(ctx)).Error
@@ -131,19 +144,19 @@ func (cc CachedConn) ExecNoCacheCtx(ctx context.Context, execCtx ExecCtxFn) erro
 }
 
 // QueryRow unmarshals into v with given key and query func.
-func (cc CachedConn) QueryRow(v interface{}, key string, query QueryFn) error {
+func (cc CachedConn) QueryRow(model, v interface{}, key string, query QueryFn) error {
 	quertCtx := func(conn *gorm.DB) *gorm.DB {
 		return query(conn)
 	}
-	return cc.QueryRowCtx(context.Background(), v, key, quertCtx)
+	return cc.QueryRowCtx(context.Background(), model, v, key, quertCtx)
 }
 
 // QueryRowCtx unmarshals into v with given key and query func.
-func (cc CachedConn) QueryRowCtx(ctx context.Context, v interface{}, key string, query QueryCtxFn) error {
+func (cc CachedConn) QueryRowCtx(ctx context.Context, model, v interface{}, key string, query QueryCtxFn) error {
 	ctx, span := startSpan(ctx)
 	defer span.End()
 	return cc.cache.TakeCtx(ctx, v, key, func(v interface{}) error {
-		return query(cc.db.WithContext(ctx)).First(v).Error
+		return query(cc.db.WithContext(ctx).Model(model)).First(v).Error
 	})
 }
 
