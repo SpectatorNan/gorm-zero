@@ -33,9 +33,11 @@ var (
 type (
 
 	// ExecFn defines the sql exec method.
-	ExecFn func(conn *gorm.DB) *gorm.DB
+	ExecFn func(conn *gorm.DB) error
 	// ExecCtxFn defines the sql exec method.
-	ExecCtxFn func( /*ctx context.Context,*/ conn *gorm.DB) *gorm.DB
+	ExecCtxFn func( /*ctx context.Context,*/ conn *gorm.DB) error
+	// ExecFnErr defines the sql exec method.
+	ExecFnErr func(conn *gorm.DB) error
 	// IndexQueryFn defines the query method that based on unique indexes.
 	IndexQueryFn func(conn *gorm.DB, v interface{}) (interface{}, error)
 	// IndexQueryCtxFn defines the query method that based on unique indexes.
@@ -45,9 +47,9 @@ type (
 	// PrimaryQueryCtxFn defines the query method that based on primary keys.
 	PrimaryQueryCtxFn func( /*ctx context.Context,*/ conn *gorm.DB, v, primary interface{}) error
 	// QueryFn defines the query method.
-	QueryFn func(conn *gorm.DB) *gorm.DB
+	QueryFn func(conn *gorm.DB) error
 	// QueryCtxFn defines the query method.
-	QueryCtxFn func( /*ctx context.Context,*/ conn *gorm.DB) *gorm.DB
+	QueryCtxFn func( /*ctx context.Context,*/ conn *gorm.DB) error
 	// AssociationReplaceFn
 	AssociationReplaceFn func(conn *gorm.DB) *gorm.Association
 
@@ -99,10 +101,34 @@ func (cc CachedConn) GetCacheCtx(ctx context.Context, key string, v interface{})
 
 // Exec runs given exec on given keys, and returns execution result.
 func (cc CachedConn) Exec(exec ExecFn, keys ...string) error {
-	execCtx := func(conn *gorm.DB) *gorm.DB {
+	execCtx := func(conn *gorm.DB) error {
 		return exec(conn)
 	}
 	return cc.ExecCtx(context.Background(), execCtx, keys...)
+}
+
+// ExecCtx runs given exec on given keys, and returns execution result.
+func (cc CachedConn) ExecCtx(ctx context.Context, execCtx ExecCtxFn, keys ...string) error {
+	err := execCtx(cc.db.WithContext(ctx))
+	if err != nil {
+		return err
+	}
+	if err := cc.DelCacheCtx(ctx, keys...); err != nil {
+		return err
+	}
+	return nil
+}
+
+// ExecCtx runs given exec on given keys, and returns execution result.
+func (cc CachedConn) ExecFnErrCtx(ctx context.Context, execFnErr ExecFnErr, keys ...string) error {
+	err := execFnErr(cc.db.WithContext(ctx))
+	if err != nil {
+		return err
+	}
+	if err := cc.DelCacheCtx(ctx, keys...); err != nil {
+		return err
+	}
+	return nil
 }
 
 func (cc CachedConn) ExecReplaceCtx(ctx context.Context, values interface{}, execCtx AssociationReplaceFn, keys ...string) error {
@@ -116,21 +142,9 @@ func (cc CachedConn) ExecReplaceCtx(ctx context.Context, values interface{}, exe
 	return nil
 }
 
-// ExecCtx runs given exec on given keys, and returns execution result.
-func (cc CachedConn) ExecCtx(ctx context.Context, execCtx ExecCtxFn, keys ...string) error {
-	err := execCtx(cc.db.WithContext(ctx)).Error
-	if err != nil {
-		return err
-	}
-	if err := cc.DelCacheCtx(ctx, keys...); err != nil {
-		return err
-	}
-	return nil
-}
-
 // ExecNoCache runs exec with given sql statement, without affecting cache.
 func (cc CachedConn) ExecNoCache(exec ExecFn) error {
-	execCtx := func(conn *gorm.DB) *gorm.DB {
+	execCtx := func(conn *gorm.DB) error {
 		return exec(conn)
 	}
 	return cc.ExecNoCacheCtx(context.Background(), execCtx)
@@ -140,12 +154,12 @@ func (cc CachedConn) ExecNoCache(exec ExecFn) error {
 func (cc CachedConn) ExecNoCacheCtx(ctx context.Context, execCtx ExecCtxFn) error {
 	ctx, span := startSpan(ctx)
 	defer span.End()
-	return execCtx(cc.db.WithContext(ctx)).Error
+	return execCtx(cc.db.WithContext(ctx))
 }
 
 // QueryRow unmarshals into v with given key and query func.
 func (cc CachedConn) QueryRow(model, v interface{}, key string, query QueryFn) error {
-	quertCtx := func(conn *gorm.DB) *gorm.DB {
+	quertCtx := func(conn *gorm.DB) error {
 		return query(conn)
 	}
 	return cc.QueryRowCtx(context.Background(), model, v, key, quertCtx)
@@ -156,7 +170,7 @@ func (cc CachedConn) QueryRowCtx(ctx context.Context, model, v interface{}, key 
 	ctx, span := startSpan(ctx)
 	defer span.End()
 	return cc.cache.TakeCtx(ctx, v, key, func(v interface{}) error {
-		return query(cc.db.WithContext(ctx).Model(model)).First(v).Error
+		return query(cc.db.WithContext(ctx).Model(model).First(v))
 	})
 }
 
@@ -204,7 +218,14 @@ func (cc CachedConn) QueryRowNoCache(model, v interface{}, fn ExecFn) error {
 func (cc CachedConn) QueryRowNoCacheCtx(ctx context.Context, model, v interface{}, fn ExecFn) error {
 	ctx, span := startSpan(ctx)
 	defer span.End()
-	return fn(cc.db.WithContext(ctx).Model(model)).First(v).Error
+	return fn(cc.db.WithContext(ctx).Model(model).First(v))
+}
+
+// QueryCountNoCacheCtx query the count num
+func (cc CachedConn) QueryCountNoCacheCtx(ctx context.Context, model interface{}, v *int64, fn ExecFn) error {
+	ctx, span := startSpan(ctx)
+	defer span.End()
+	return fn(cc.db.WithContext(ctx).Model(model).Count(v))
 }
 
 // QueryRowsNoCache unmarshals into v with given statement.
@@ -218,7 +239,7 @@ func (cc CachedConn) QueryRowsNoCache(model, v interface{}, fn ExecFn) error {
 func (cc CachedConn) QueryRowsNoCacheCtx(ctx context.Context, model, v interface{}, fn ExecFn) error {
 	ctx, span := startSpan(ctx)
 	defer span.End()
-	return fn(cc.db.WithContext(ctx).Model(model)).Find(v).Error
+	return fn(cc.db.WithContext(ctx).Model(model).Find(v))
 }
 
 // SetCache sets v into cache with given key.
