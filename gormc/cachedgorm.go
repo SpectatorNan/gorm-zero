@@ -47,9 +47,9 @@ type (
 	// PrimaryQueryCtxFn defines the query method that based on primary keys.
 	PrimaryQueryCtxFn func( /*ctx context.Context,*/ conn *gorm.DB, v, primary interface{}) error
 	// QueryFn defines the query method.
-	QueryFn func(conn *gorm.DB) error
+	QueryFn func(conn *gorm.DB, v interface{}) error
 	// QueryCtxFn defines the query method.
-	QueryCtxFn func( /*ctx context.Context,*/ conn *gorm.DB) error
+	QueryCtxFn func( /*ctx context.Context,*/ conn *gorm.DB, v interface{}) error
 	// AssociationReplaceFn
 	AssociationReplaceFn func(conn *gorm.DB) *gorm.Association
 
@@ -159,8 +159,8 @@ func (cc CachedConn) ExecNoCacheCtx(ctx context.Context, execCtx ExecCtxFn) erro
 
 // QueryRow unmarshals into v with given key and query func.
 func (cc CachedConn) QueryRow(model, v interface{}, key string, query QueryFn) error {
-	quertCtx := func(conn *gorm.DB) error {
-		return query(conn)
+	quertCtx := func(conn *gorm.DB, v interface{}) error {
+		return query(conn, v)
 	}
 	return cc.QueryRowCtx(context.Background(), model, v, key, quertCtx)
 }
@@ -170,7 +170,7 @@ func (cc CachedConn) QueryRowCtx(ctx context.Context, model, v interface{}, key 
 	ctx, span := startSpan(ctx)
 	defer span.End()
 	return cc.cache.TakeCtx(ctx, v, key, func(v interface{}) error {
-		return query(cc.db.WithContext(ctx).Model(model).First(v))
+		return query(cc.db.WithContext(ctx).Model(model), v)
 	})
 }
 
@@ -210,36 +210,29 @@ func (cc CachedConn) QueryRowIndexCtx(ctx context.Context, v interface{}, key st
 }
 
 // QueryRowNoCache unmarshals into v with given statement.
-func (cc CachedConn) QueryRowNoCache(model, v interface{}, fn ExecFn) error {
+func (cc CachedConn) QueryRowNoCache(model, v interface{}, fn QueryCtxFn) error {
 	return cc.QueryRowNoCacheCtx(context.Background(), model, v, fn)
 }
 
 // QueryRowNoCacheCtx unmarshals into v with given statement.
-func (cc CachedConn) QueryRowNoCacheCtx(ctx context.Context, model, v interface{}, fn ExecFn) error {
+func (cc CachedConn) QueryRowNoCacheCtx(ctx context.Context, model, v interface{}, fn QueryCtxFn) error {
 	ctx, span := startSpan(ctx)
 	defer span.End()
-	return fn(cc.db.WithContext(ctx).Model(model).First(v))
-}
-
-// QueryCountNoCacheCtx query the count num
-func (cc CachedConn) QueryCountNoCacheCtx(ctx context.Context, model interface{}, v *int64, fn ExecFn) error {
-	ctx, span := startSpan(ctx)
-	defer span.End()
-	return fn(cc.db.WithContext(ctx).Model(model).Count(v))
+	return fn(cc.db.WithContext(ctx).Model(model), v)
 }
 
 // QueryRowsNoCache unmarshals into v with given statement.
 // It doesn't use cache, because it might cause consistency problem.
-func (cc CachedConn) QueryRowsNoCache(model, v interface{}, fn ExecFn) error {
+func (cc CachedConn) QueryRowsNoCache(model, v interface{}, fn QueryCtxFn) error {
 	return cc.QueryRowsNoCacheCtx(context.Background(), model, v, fn)
 }
 
 // QueryRowsNoCacheCtx unmarshals into v with given statement.
 // It doesn't use cache, because it might cause consistency problem.
-func (cc CachedConn) QueryRowsNoCacheCtx(ctx context.Context, model, v interface{}, fn ExecFn) error {
+func (cc CachedConn) QueryRowsNoCacheCtx(ctx context.Context, model, v interface{}, fn QueryCtxFn) error {
 	ctx, span := startSpan(ctx)
 	defer span.End()
-	return fn(cc.db.WithContext(ctx).Model(model).Find(v))
+	return fn(cc.db.WithContext(ctx).Model(model), v)
 }
 
 // SetCache sets v into cache with given key.
