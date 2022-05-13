@@ -32,7 +32,6 @@ var (
 
 type (
 
-
 	// ExecCtxFn defines the sql exec method.
 	ExecCtxFn func(conn *gorm.DB) error
 	// IndexQueryCtxFn defines the query method that based on unique indexes.
@@ -154,6 +153,9 @@ func (cc CachedConn) QueryRowIndexCtx(ctx context.Context, v interface{}, key st
 		return cc.cache.SetWithExpireCtx(ctx, keyer(primaryKey), v, expire+cacheSafeGapBetweenIndexAndPrimary)
 	}); err != nil {
 		return err
+	}
+	if found {
+		return nil
 	}
 	return cc.cache.TakeCtx(ctx, v, keyer(primaryKey), func(v interface{}) error {
 		return primaryQuery(cc.db.WithContext(ctx), v, primaryKey)
