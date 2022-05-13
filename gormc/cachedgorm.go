@@ -32,26 +32,17 @@ var (
 
 type (
 
-	// ExecFn defines the sql exec method.
-	ExecFn func(conn *gorm.DB) error
+
 	// ExecCtxFn defines the sql exec method.
-	ExecCtxFn func( /*ctx context.Context,*/ conn *gorm.DB) error
-	// ExecFnErr defines the sql exec method.
-	ExecFnErr func(conn *gorm.DB) error
-	// IndexQueryFn defines the query method that based on unique indexes.
-	IndexQueryFn func(conn *gorm.DB, v interface{}) (interface{}, error)
+	ExecCtxFn func(conn *gorm.DB) error
 	// IndexQueryCtxFn defines the query method that based on unique indexes.
-	IndexQueryCtxFn func( /*ctx context.Context,*/ conn *gorm.DB, v interface{}) (interface{}, error)
-	// PrimaryQueryFn defines the query method that based on primary keys.
-	PrimaryQueryFn func(conn *gorm.DB, v, primary interface{}) error
+	IndexQueryCtxFn func(conn *gorm.DB, v interface{}) (interface{}, error)
 	// PrimaryQueryCtxFn defines the query method that based on primary keys.
-	PrimaryQueryCtxFn func( /*ctx context.Context,*/ conn *gorm.DB, v, primary interface{}) error
-	// QueryFn defines the query method.
-	QueryFn func(conn *gorm.DB, v interface{}) error
+	PrimaryQueryCtxFn func(conn *gorm.DB, v, primary interface{}) error
 	// QueryCtxFn defines the query method.
-	QueryCtxFn func( /*ctx context.Context,*/ conn *gorm.DB, v interface{}) error
+	QueryCtxFn func(conn *gorm.DB, v interface{}) error
 	// AssociationReplaceFn
-	AssociationReplaceFn func(conn *gorm.DB) *gorm.Association
+	//AssociationReplaceFn func(conn *gorm.DB) *gorm.Association
 
 	CachedConn struct {
 		db    *gorm.DB
@@ -100,11 +91,8 @@ func (cc CachedConn) GetCacheCtx(ctx context.Context, key string, v interface{})
 }
 
 // Exec runs given exec on given keys, and returns execution result.
-func (cc CachedConn) Exec(exec ExecFn, keys ...string) error {
-	execCtx := func(conn *gorm.DB) error {
-		return exec(conn)
-	}
-	return cc.ExecCtx(context.Background(), execCtx, keys...)
+func (cc CachedConn) Exec(exec ExecCtxFn, keys ...string) error {
+	return cc.ExecCtx(context.Background(), exec, keys...)
 }
 
 // ExecCtx runs given exec on given keys, and returns execution result.
@@ -120,19 +108,8 @@ func (cc CachedConn) ExecCtx(ctx context.Context, execCtx ExecCtxFn, keys ...str
 }
 
 // ExecCtx runs given exec on given keys, and returns execution result.
-func (cc CachedConn) ExecFnErrCtx(ctx context.Context, execFnErr ExecFnErr, keys ...string) error {
-	err := execFnErr(cc.db.WithContext(ctx))
-	if err != nil {
-		return err
-	}
-	if err := cc.DelCacheCtx(ctx, keys...); err != nil {
-		return err
-	}
-	return nil
-}
-
-func (cc CachedConn) ExecReplaceCtx(ctx context.Context, values interface{}, execCtx AssociationReplaceFn, keys ...string) error {
-	err := execCtx(cc.db.WithContext(ctx)).Replace(values)
+func (cc CachedConn) ExecFnErrCtx(ctx context.Context, exec ExecCtxFn, keys ...string) error {
+	err := exec(cc.db.WithContext(ctx))
 	if err != nil {
 		return err
 	}
@@ -143,11 +120,8 @@ func (cc CachedConn) ExecReplaceCtx(ctx context.Context, values interface{}, exe
 }
 
 // ExecNoCache runs exec with given sql statement, without affecting cache.
-func (cc CachedConn) ExecNoCache(exec ExecFn) error {
-	execCtx := func(conn *gorm.DB) error {
-		return exec(conn)
-	}
-	return cc.ExecNoCacheCtx(context.Background(), execCtx)
+func (cc CachedConn) ExecNoCache(exec ExecCtxFn) error {
+	return cc.ExecNoCacheCtx(context.Background(), exec)
 }
 
 // ExecNoCacheCtx runs exec with given sql statement, without affecting cache.
@@ -157,33 +131,10 @@ func (cc CachedConn) ExecNoCacheCtx(ctx context.Context, execCtx ExecCtxFn) erro
 	return execCtx(cc.db.WithContext(ctx))
 }
 
-// QueryRow unmarshals into v with given key and query func.
-func (cc CachedConn) QueryRow(model, v interface{}, key string, query QueryFn) error {
-	quertCtx := func(conn *gorm.DB, v interface{}) error {
-		return query(conn, v)
-	}
-	return cc.QueryRowCtx(context.Background(), model, v, key, quertCtx)
-}
-
-// QueryRowCtx unmarshals into v with given key and query func.
-func (cc CachedConn) QueryRowCtx(ctx context.Context, model, v interface{}, key string, query QueryCtxFn) error {
-	ctx, span := startSpan(ctx)
-	defer span.End()
-	return cc.cache.TakeCtx(ctx, v, key, func(v interface{}) error {
-		return query(cc.db.WithContext(ctx).Model(model), v)
-	})
-}
-
 // QueryRowIndex unmarshals into v with given key.
 func (cc CachedConn) QueryRowIndex(v interface{}, key string, keyer func(primary interface{}) string,
-	indexQuery IndexQueryFn, primaryQuery PrimaryQueryFn) error {
-	indexQueryCtx := func(conn *gorm.DB, v interface{}) (interface{}, error) {
-		return indexQuery(conn, v)
-	}
-	primaryQueryCtx := func(conn *gorm.DB, v, primary interface{}) error {
-		return primaryQuery(conn, v, primary)
-	}
-	return cc.QueryRowIndexCtx(context.Background(), v, key, keyer, indexQueryCtx, primaryQueryCtx)
+	indexQuery IndexQueryCtxFn, primaryQuery PrimaryQueryCtxFn) error {
+	return cc.QueryRowIndexCtx(context.Background(), v, key, keyer, indexQuery, primaryQuery)
 }
 
 // QueryRowIndexCtx unmarshals into v with given key.
@@ -209,31 +160,59 @@ func (cc CachedConn) QueryRowIndexCtx(ctx context.Context, v interface{}, key st
 	})
 }
 
-// QueryRowNoCache unmarshals into v with given statement.
-func (cc CachedConn) QueryRowNoCache(model, v interface{}, fn QueryCtxFn) error {
-	return cc.QueryRowNoCacheCtx(context.Background(), model, v, fn)
-}
-
-// QueryRowNoCacheCtx unmarshals into v with given statement.
-func (cc CachedConn) QueryRowNoCacheCtx(ctx context.Context, model, v interface{}, fn QueryCtxFn) error {
+func (cc CachedConn) QueryCtx(ctx context.Context, v interface{}, key string, query QueryCtxFn) error {
 	ctx, span := startSpan(ctx)
 	defer span.End()
-	return fn(cc.db.WithContext(ctx).Model(model), v)
+	return cc.cache.TakeCtx(ctx, v, key, func(v interface{}) error {
+		return query(cc.db.WithContext(ctx), v)
+	})
 }
+
+func (cc CachedConn) QueryNoCacheCtx(ctx context.Context, v interface{}, fn QueryCtxFn) error {
+	ctx, span := startSpan(ctx)
+	defer span.End()
+	return fn(cc.db.WithContext(ctx), v)
+}
+
+// QueryRow unmarshals into v with given key and query func.
+//func (cc CachedConn) QueryRow(model, v interface{}, key string, query QueryCtxFn) error {
+//	return cc.QueryRowCtx(context.Background(), model, v, key, query)
+//}
+
+// QueryRowCtx unmarshals into v with given key and query func.
+//func (cc CachedConn) QueryRowCtx(ctx context.Context, model, v interface{}, key string, query QueryCtxFn) error {
+//	ctx, span := startSpan(ctx)
+//	defer span.End()
+//	return cc.cache.TakeCtx(ctx, v, key, func(v interface{}) error {
+//		return query(cc.db.WithContext(ctx).Model(model), v)
+//	})
+//}
+
+// QueryRowNoCache unmarshals into v with given statement.
+//func (cc CachedConn) QueryRowNoCache(model, v interface{}, fn QueryCtxFn) error {
+//	return cc.QueryRowNoCacheCtx(context.Background(), model, v, fn)
+//}
+
+// QueryRowNoCacheCtx unmarshals into v with given statement.
+//func (cc CachedConn) QueryRowNoCacheCtx(ctx context.Context, model, v interface{}, fn QueryCtxFn) error {
+//	ctx, span := startSpan(ctx)
+//	defer span.End()
+//	return fn(cc.db.WithContext(ctx).Model(model), v)
+//}
 
 // QueryRowsNoCache unmarshals into v with given statement.
 // It doesn't use cache, because it might cause consistency problem.
-func (cc CachedConn) QueryRowsNoCache(model, v interface{}, fn QueryCtxFn) error {
-	return cc.QueryRowsNoCacheCtx(context.Background(), model, v, fn)
-}
+//func (cc CachedConn) QueryRowsNoCache(model, v interface{}, fn QueryCtxFn) error {
+//	return cc.QueryRowsNoCacheCtx(context.Background(), model, v, fn)
+//}
 
 // QueryRowsNoCacheCtx unmarshals into v with given statement.
 // It doesn't use cache, because it might cause consistency problem.
-func (cc CachedConn) QueryRowsNoCacheCtx(ctx context.Context, model, v interface{}, fn QueryCtxFn) error {
-	ctx, span := startSpan(ctx)
-	defer span.End()
-	return fn(cc.db.WithContext(ctx).Model(model), v)
-}
+//func (cc CachedConn) QueryRowsNoCacheCtx(ctx context.Context, model, v interface{}, fn QueryCtxFn) error {
+//	ctx, span := startSpan(ctx)
+//	defer span.End()
+//	return fn(cc.db.WithContext(ctx).Model(model), v)
+//}
 
 // SetCache sets v into cache with given key.
 func (cc CachedConn) SetCache(key string, v interface{}) error {
