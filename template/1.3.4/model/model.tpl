@@ -2,7 +2,6 @@ package {{.pkg}}
 {{if .withCache}}
 import (
 	"github.com/zeromicro/go-zero/core/stores/cache"
-	"github.com/zeromicro/go-zero/core/stores/sqlx"
 	"gorm.io/gorm"
 )
 {{else}}
