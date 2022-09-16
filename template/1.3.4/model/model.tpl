@@ -22,7 +22,20 @@ type (
 		*default{{.upperStartCamelObject}}Model
 	}
 )
-
+{{ if or (.gormCreatedAt) (.gormUpdatedAt) }}
+func (s *{{.upperStartCamelObject}}) BeforeCreate(tx *gorm.DB) error {
+	now := time.Now()
+	s.CreatedAt = now
+	s.UpdatedAt = now
+	return nil
+}
+{{ end }}
+{{ if .gormUpdatedAt}}
+func (s *{{.upperStartCamelObject}}) BeforeUpdate(tx *gorm.DB) error {
+	s.UpdatedAt = time.Now()
+	return nil
+}
+{{ end }}
 // New{{.upperStartCamelObject}}Model returns a model for the database table.
 func New{{.upperStartCamelObject}}Model(conn *gorm.DB{{if .withCache}}, c cache.CacheConf{{end}}) {{.upperStartCamelObject}}Model {
 	return &custom{{.upperStartCamelObject}}Model{
