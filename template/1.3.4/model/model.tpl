@@ -3,10 +3,12 @@ package {{.pkg}}
 import (
 	"github.com/zeromicro/go-zero/core/stores/cache"
 	"gorm.io/gorm"
+	{{ if or (.gormCreatedAt) (.gormUpdatedAt) }} "time" {{ end }}
 )
 {{else}}
 import (
 	"gorm.io/gorm"
+	{{ if or (.gormCreatedAt) (.gormUpdatedAt) }} "time" {{ end }}
 )
 {{end}}
 var _ {{.upperStartCamelObject}}Model = (*custom{{.upperStartCamelObject}}Model)(nil)
@@ -25,8 +27,8 @@ type (
 {{ if or (.gormCreatedAt) (.gormUpdatedAt) }}
 func (s *{{.upperStartCamelObject}}) BeforeCreate(tx *gorm.DB) error {
 	now := time.Now()
-	s.CreatedAt = now
-	s.UpdatedAt = now
+	{{ if .gormCreatedAt }}s.CreatedAt = now{{ end }}
+	{{ if .gormUpdatedAt}}s.UpdatedAt = now{{ end }}
 	return nil
 }
 {{ end }}
