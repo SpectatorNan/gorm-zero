@@ -44,3 +44,7 @@ func New{{.upperStartCamelObject}}Model(conn *gorm.DB{{if .withCache}}, c cache.
 		default{{.upperStartCamelObject}}Model: new{{.upperStartCamelObject}}Model(conn{{if .withCache}}, c{{end}}),
 	}
 }
+
+func (m *default{{.upperStartCamelObject}}Model) customCacheKeys(data *CustomerAddress) []string {
+	return []string{}
+}
