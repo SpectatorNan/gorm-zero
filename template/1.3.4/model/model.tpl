@@ -46,5 +46,8 @@ func New{{.upperStartCamelObject}}Model(conn *gorm.DB{{if .withCache}}, c cache.
 }
 
 func (m *default{{.upperStartCamelObject}}Model) customCacheKeys(data *{{.upperStartCamelObject}}) []string {
+    if data == nil {
+        return []string{}
+    }
 	return []string{}
 }
