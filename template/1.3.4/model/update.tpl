@@ -1,7 +1,7 @@
 
 func (m *default{{.upperStartCamelObject}}Model) Update(ctx context.Context, data *{{.upperStartCamelObject}}) error {
 	{{if .withCache}}old, err := m.FindOne(ctx, data.Id)
-    if err != nil {
+    if err != nil && err != ErrNotFound {
         return err
     }
     err = m.ExecCtx(ctx, func(conn *gorm.DB) error {
@@ -11,6 +11,9 @@ func (m *default{{.upperStartCamelObject}}Model) Update(ctx context.Context, dat
 }
 {{if .withCache}}
 func (m *default{{.upperStartCamelObject}}Model) getCacheKeys(data *{{.upperStartCamelObject}}) []string {
+	if data == nil {
+		return []string{}
+	}
 	{{.keys}}
 	cacheKeys := []string{
 		{{.keyValues}},
