@@ -174,6 +174,13 @@ func (cc CachedConn) QueryNoCacheCtx(ctx context.Context, v interface{}, fn Quer
 	return fn(cc.db.WithContext(ctx), v)
 }
 
+// QueryWithExpireCtx unmarshals into v with given key, set expire duration and query func.
+func (cc CachedConn) QueryWithExpireCtx(ctx context.Context, v interface{}, key string, expire time.Duration, query QueryCtxFn) error {
+	return cc.cache.TakeWithSetExpireCtx(ctx, v, key, expire, func(val interface{}) error {
+		return query(cc.db.WithContext(ctx), v)
+	})
+}
+
 // SetCache sets v into cache with given key.
 func (cc CachedConn) SetCache(key string, v interface{}) error {
 	return cc.cache.SetCtx(context.Background(), key, v)
