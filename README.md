@@ -3,6 +3,8 @@
 
 ### If you use go zero, and you want to use Gorm. You can use this library.
 
+## It is recommended to use version v1.0.2, the V1.0.3 needs to wait for go-zero to merge core dependencies
+
 # Usage
 
 - add the dependent
