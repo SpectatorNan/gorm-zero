@@ -21,3 +21,6 @@ func (m *default{{.upperStartCamelObject}}Model) Delete(ctx context.Context, tx 
 	{{end}}
 	return err
 }
+func (m *default{{.upperStartCamelObject}}Model) Transaction(ctx context.Context, fn func(db *gorm.DB) error) error {
+    return m.TransactCtx(ctx, fn)
+}
