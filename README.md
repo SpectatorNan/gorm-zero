@@ -17,6 +17,43 @@ go get github.com/SpectatorNan/gorm-zero
 goctl model mysql -src={patterns} -dir={dir} -cache --home ./template
 ```
 
+## Mysql
+### Config
+```golang 
+type Config struct {
+	Mysql      gormc.Mysql
+	...
+}
+```
+## Initialization
+```golang
+func NewServiceContext(c config.Config) *ServiceContext {
+db, err := gormc.ConnectMysql(c.Mysql)
+if err != nil {
+log.Fatal(err)
+}
+...
+}
+```
+
+## PgSql
+### Config
+```golang 
+type Config struct {
+    PgSql      gormc.PgSql
+	...
+}
+```
+## Initialization
+```golang
+func NewServiceContext(c config.Config) *ServiceContext {
+db, err := gormc.ConnectPgSql(c.PgSql)
+if err != nil {
+log.Fatal(err)
+}
+...
+}
+```
 
 ## Usage Example
 - go zero model example link: [gorm-zero-example](https://github.com/SpectatorNan/gorm-zero-example)
