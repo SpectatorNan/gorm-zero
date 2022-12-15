@@ -27,7 +27,7 @@ type (
 
 	custom{{.upperStartCamelObject}}LogicModel interface {
 
-	}
+    	}
 )
 {{ if or (.gormCreatedAt) (.gormUpdatedAt) }}
 // BeforeCreate hook create time

@@ -1,8 +1,7 @@
 import (
 	"context"
-	"database/sql"
 	"github.com/SpectatorNan/gorm-zero/gormc"
-	"strings"
+	{{if .containsDbSql}}"database/sql"{{end}}
 	{{if .time}}"time"{{end}}
 
 	"gorm.io/gorm"

@@ -3,6 +3,7 @@ package gormc
 import (
 	"context"
 	"database/sql"
+	"github.com/zeromicro/go-zero/core/mathx"
 	"github.com/zeromicro/go-zero/core/stores/cache"
 	"github.com/zeromicro/go-zero/core/stores/redis"
 	"github.com/zeromicro/go-zero/core/syncx"
@@ -20,6 +21,10 @@ const spanName = "sql"
 
 // TraceName represents the tracing name.
 const TraceName = "gorm-zero"
+
+// make the expiry unstable to avoid lots of cached items expire at the same time
+// make the unstable expiry to be [0.95, 1.05] * seconds
+const expiryDeviation = 0.05
 
 var (
 	// ErrNotFound is an alias of gorm.ErrRecordNotFound.
@@ -42,8 +47,9 @@ type (
 	QueryCtxFn func(conn *gorm.DB, v interface{}) error
 
 	CachedConn struct {
-		db    *gorm.DB
-		cache cache.Cache
+		db                 *gorm.DB
+		cache              cache.Cache
+		unstableExpiryTime mathx.Unstable
 	}
 )
 
@@ -56,8 +62,9 @@ func NewConn(db *gorm.DB, c cache.CacheConf, opts ...cache.Option) CachedConn {
 // NewConnWithCache returns a CachedConn with a custom cache.
 func NewConnWithCache(db *gorm.DB, c cache.Cache) CachedConn {
 	return CachedConn{
-		db:    db,
-		cache: c,
+		db:                 db,
+		cache:              c,
+		unstableExpiryTime: mathx.NewUnstable(expiryDeviation),
 	}
 }
 
@@ -168,17 +175,27 @@ func (cc CachedConn) QueryCtx(ctx context.Context, v interface{}, key string, qu
 	})
 }
 
-func (cc CachedConn) QueryNoCacheCtx(ctx context.Context, v interface{}, fn QueryCtxFn) error {
+func (cc CachedConn) QueryNoCacheCtx(ctx context.Context, v interface{}, query QueryCtxFn) error {
 	ctx, span := startSpan(ctx)
 	defer span.End()
-	return fn(cc.db.WithContext(ctx), v)
+	return query(cc.db.WithContext(ctx), v)
 }
 
 // QueryWithExpireCtx unmarshals into v with given key, set expire duration and query func.
 func (cc CachedConn) QueryWithExpireCtx(ctx context.Context, v interface{}, key string, expire time.Duration, query QueryCtxFn) error {
-	return cc.cache.TakeWithSetExpireCtx(ctx, v, key, expire, func(val interface{}) error {
-		return query(cc.db.WithContext(ctx), v)
-	})
+	ctx, span := startSpan(ctx)
+	defer span.End()
+	err := query(cc.db.WithContext(ctx), v)
+	if err != nil {
+		return err
+	}
+	return cc.cache.SetWithExpireCtx(ctx, key, v, cc.aroundDuration(expire))
+	//return cc.cache.TakeWithSetExpireCtx(ctx, v, key, expire, func(val interface{}) error {
+	//	return query(cc.db.WithContext(ctx), v)
+	//})
+}
+func (c CachedConn) aroundDuration(duration time.Duration) time.Duration {
+	return c.unstableExpiryTime.AroundDuration(duration)
 }
 
 // SetCache sets v into cache with given key.
