@@ -1,6 +1,6 @@
 
 func (m *default{{.upperStartCamelObject}}Model) Update(ctx context.Context, tx *gorm.DB, data *{{.upperStartCamelObject}}) error {
-    {{if .withCache}}old, err := m.FindOne(ctx, data.Id)
+    {{if .withCache}}old, err := m.FindOne(ctx, data.{{.upperStartCamelPrimaryKey}})
     if err != nil && err != ErrNotFound {
         return err
     }
