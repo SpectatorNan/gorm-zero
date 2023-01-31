@@ -3,14 +3,18 @@ package gormc
 import (
 	"context"
 	"database/sql"
+	"time"
+
 	"github.com/zeromicro/go-zero/core/mathx"
 	"github.com/zeromicro/go-zero/core/stores/cache"
 	"github.com/zeromicro/go-zero/core/stores/redis"
 	"github.com/zeromicro/go-zero/core/syncx"
+	"github.com/zeromicro/go-zero/core/trace"
 	"go.opentelemetry.io/otel"
-	tracesdk "go.opentelemetry.io/otel/trace"
+	"go.opentelemetry.io/otel/attribute"
+	"go.opentelemetry.io/otel/codes"
+	oteltrace "go.opentelemetry.io/otel/trace"
 	"gorm.io/gorm"
-	"time"
 )
 
 // see doc/sql-cache.md
@@ -18,9 +22,6 @@ const cacheSafeGapBetweenIndexAndPrimary = time.Second * 5
 
 // spanName is used to identify the span name for the SQL execution.
 const spanName = "sql"
-
-// TraceName represents the tracing name.
-const TraceName = "gorm-zero"
 
 // make the expiry unstable to avoid lots of cached items expire at the same time
 // make the unstable expiry to be [0.95, 1.05] * seconds
@@ -111,27 +112,17 @@ func (cc CachedConn) ExecCtx(ctx context.Context, execCtx ExecCtxFn, keys ...str
 	return nil
 }
 
-// ExecCtx runs given exec on given keys, and returns execution result.
-func (cc CachedConn) ExecFnErrCtx(ctx context.Context, exec ExecCtxFn, keys ...string) error {
-	err := exec(cc.db.WithContext(ctx))
-	if err != nil {
-		return err
-	}
-	if err := cc.DelCacheCtx(ctx, keys...); err != nil {
-		return err
-	}
-	return nil
-}
-
 // ExecNoCache runs exec with given sql statement, without affecting cache.
 func (cc CachedConn) ExecNoCache(exec ExecCtxFn) error {
 	return cc.ExecNoCacheCtx(context.Background(), exec)
 }
 
 // ExecNoCacheCtx runs exec with given sql statement, without affecting cache.
-func (cc CachedConn) ExecNoCacheCtx(ctx context.Context, execCtx ExecCtxFn) error {
-	ctx, span := startSpan(ctx)
-	defer span.End()
+func (cc CachedConn) ExecNoCacheCtx(ctx context.Context, execCtx ExecCtxFn) (err error) {
+	ctx, span := startSpan(ctx, "ExecNoCache")
+	defer func() {
+		endSpan(span, err)
+	}()
 	return execCtx(cc.db.WithContext(ctx))
 }
 
@@ -142,14 +133,16 @@ func (cc CachedConn) QueryRowIndex(v interface{}, key string, keyer func(primary
 }
 
 // QueryRowIndexCtx unmarshals into v with given key.
-func (cc CachedConn) QueryRowIndexCtx(ctx context.Context, v interface{}, key string, keyer func(primary interface{}) string, indexQuery IndexQueryCtxFn, primaryQuery PrimaryQueryCtxFn) error {
-	ctx, span := startSpan(ctx)
-	defer span.End()
+func (cc CachedConn) QueryRowIndexCtx(ctx context.Context, v interface{}, key string, keyer func(primary interface{}) string, indexQuery IndexQueryCtxFn, primaryQuery PrimaryQueryCtxFn) (err error) {
+	ctx, span := startSpan(ctx, "QueryRowIndex")
+	defer func() {
+		endSpan(span, err)
+	}()
 
 	var primaryKey interface{}
 	var found bool
 
-	if err := cc.cache.TakeWithExpireCtx(ctx, &primaryKey, key, func(val interface{}, expire time.Duration) (err error) {
+	if err = cc.cache.TakeWithExpireCtx(ctx, &primaryKey, key, func(val interface{}, expire time.Duration) error {
 		primaryKey, err = indexQuery(cc.db.WithContext(ctx), v)
 		if err != nil {
 			return err
@@ -167,25 +160,31 @@ func (cc CachedConn) QueryRowIndexCtx(ctx context.Context, v interface{}, key st
 	})
 }
 
-func (cc CachedConn) QueryCtx(ctx context.Context, v interface{}, key string, query QueryCtxFn) error {
-	ctx, span := startSpan(ctx)
-	defer span.End()
+func (cc CachedConn) QueryCtx(ctx context.Context, v interface{}, key string, query QueryCtxFn) (err error) {
+	ctx, span := startSpan(ctx, "Query")
+	defer func() {
+		endSpan(span, err)
+	}()
 	return cc.cache.TakeCtx(ctx, v, key, func(v interface{}) error {
 		return query(cc.db.WithContext(ctx), v)
 	})
 }
 
-func (cc CachedConn) QueryNoCacheCtx(ctx context.Context, v interface{}, query QueryCtxFn) error {
-	ctx, span := startSpan(ctx)
-	defer span.End()
+func (cc CachedConn) QueryNoCacheCtx(ctx context.Context, v interface{}, query QueryCtxFn) (err error) {
+	ctx, span := startSpan(ctx, "QueryNoCache")
+	defer func() {
+		endSpan(span, err)
+	}()
 	return query(cc.db.WithContext(ctx), v)
 }
 
 // QueryWithExpireCtx unmarshals into v with given key, set expire duration and query func.
-func (cc CachedConn) QueryWithExpireCtx(ctx context.Context, v interface{}, key string, expire time.Duration, query QueryCtxFn) error {
-	ctx, span := startSpan(ctx)
-	defer span.End()
-	err := query(cc.db.WithContext(ctx), v)
+func (cc CachedConn) QueryWithExpireCtx(ctx context.Context, v interface{}, key string, expire time.Duration, query QueryCtxFn) (err error) {
+	ctx, span := startSpan(ctx, "QueryWithExpire")
+	defer func() {
+		endSpan(span, err)
+	}()
+	err = query(cc.db.WithContext(ctx), v)
 	if err != nil {
 		return err
 	}
@@ -194,8 +193,8 @@ func (cc CachedConn) QueryWithExpireCtx(ctx context.Context, v interface{}, key 
 	//	return query(cc.db.WithContext(ctx), v)
 	//})
 }
-func (c CachedConn) aroundDuration(duration time.Duration) time.Duration {
-	return c.unstableExpiryTime.AroundDuration(duration)
+func (cc CachedConn) aroundDuration(duration time.Duration) time.Duration {
+	return cc.unstableExpiryTime.AroundDuration(duration)
 }
 
 // SetCache sets v into cache with given key.
@@ -223,7 +222,27 @@ func (cc CachedConn) TransactCtx(ctx context.Context, fn func(db *gorm.DB) error
 	return cc.db.WithContext(ctx).Transaction(fn, opts...)
 }
 
-func startSpan(ctx context.Context) (context.Context, tracesdk.Span) {
-	tracer := otel.GetTracerProvider().Tracer(TraceName)
-	return tracer.Start(ctx, spanName)
+var sqlAttributeKey = attribute.Key("sql.method")
+
+func startSpan(ctx context.Context, method string) (context.Context, oteltrace.Span) {
+	tracer := otel.Tracer(trace.TraceName)
+	start, span := tracer.Start(ctx,
+		spanName,
+		oteltrace.WithSpanKind(oteltrace.SpanKindClient),
+	)
+	span.SetAttributes(sqlAttributeKey.String(method))
+
+	return start, span
+}
+
+func endSpan(span oteltrace.Span, err error) {
+	defer span.End()
+
+	if err == nil || err == ErrNotFound {
+		span.SetStatus(codes.Ok, "")
+		return
+	}
+
+	span.SetStatus(codes.Error, err.Error())
+	span.RecordError(err)
 }
