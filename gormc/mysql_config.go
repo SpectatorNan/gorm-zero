@@ -2,6 +2,7 @@ package gormc
 
 import (
 	"errors"
+	"fmt"
 	"gorm.io/driver/mysql"
 	"gorm.io/gorm"
 	"gorm.io/gorm/logger"
@@ -10,7 +11,7 @@ import (
 
 type Mysql struct {
 	Path          string // 服务器地址
-	Port          string `json:",default=3306"`                                               // 端口
+	Port          int    `json:",default=3306"`                                               // 端口
 	Config        string `json:",default=charset%3Dutf8mb4%26parseTime%3Dtrue%26loc%3DLocal"` // 高级配置
 	Dbname        string // 数据库名
 	Username      string // 数据库用户名
@@ -23,7 +24,7 @@ type Mysql struct {
 }
 
 func (m *Mysql) Dsn() string {
-	return m.Username + ":" + m.Password + "@tcp(" + m.Path + ":" + m.Port + ")/" + m.Dbname + "?" + m.Config
+	return m.Username + ":" + m.Password + "@tcp(" + m.Path + ":" + fmt.Sprintf("%d", m.Port) + ")/" + m.Dbname + "?" + m.Config
 }
 
 func (m *Mysql) GetGormLogMode() logger.LogLevel {

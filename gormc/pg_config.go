@@ -13,7 +13,7 @@ type PgSql struct {
 	Username      string
 	Password      string
 	Path          string
-	Port          string `json:",default=5432"`
+	Port          int    `json:",default=5432"`
 	SslMode       string `json:",default=disable,options=disable|enable"`
 	TimeZone      string `json:",default=Asia/Shanghai"`
 	Dbname        string
@@ -25,7 +25,7 @@ type PgSql struct {
 }
 
 func (m *PgSql) Dsn() string {
-	return fmt.Sprintf("user=%s password=%s dbname=%s host=%s port=%s sslmode=%s TimeZone=%s", m.Username, m.Password, m.Dbname, m.Path, m.Port, m.SslMode, m.TimeZone)
+	return fmt.Sprintf("user=%s password=%s dbname=%s host=%s port=%d sslmode=%s TimeZone=%s", m.Username, m.Password, m.Dbname, m.Path, m.Port, m.SslMode, m.TimeZone)
 }
 func (m *PgSql) GetGormLogMode() logger.LogLevel {
 	return overwriteGormLogMode(m.LogMode)
