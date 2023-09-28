@@ -3,7 +3,7 @@ module github.com/SpectatorNan/gorm-zero
 go 1.16
 
 require (
-	github.com/zeromicro/go-zero v1.5.5
+	github.com/zeromicro/go-zero v1.5.6
 	go.opentelemetry.io/otel v1.17.0
 	go.opentelemetry.io/otel/trace v1.17.0
 	gorm.io/driver/mysql v1.5.1
