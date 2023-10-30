@@ -1,4 +1,4 @@
-package gormc
+package config
 
 import (
 	"gorm.io/gorm/logger"
@@ -13,7 +13,7 @@ type GormLogConfigI interface {
 	GetColorful() bool
 }
 
-func newDefaultGormLogger(cfg GormLogConfigI) logger.Interface {
+func NewDefaultGormLogger(cfg GormLogConfigI) logger.Interface {
 	newLogger := logger.New(
 		log.New(os.Stderr, "\r\n", log.LstdFlags), // io writer（日志输出的目标，前缀和日志包含的内容——译者注）
 		logger.Config{
@@ -26,7 +26,7 @@ func newDefaultGormLogger(cfg GormLogConfigI) logger.Interface {
 	return newLogger
 }
 
-func overwriteGormLogMode(mode string) logger.LogLevel {
+func OverwriteGormLogMode(mode string) logger.LogLevel {
 	switch mode {
 	case "dev":
 		return logger.Info

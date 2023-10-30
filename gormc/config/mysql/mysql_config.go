@@ -1,8 +1,9 @@
-package gormc
+package mysql
 
 import (
 	"errors"
 	"fmt"
+	"github.com/SpectatorNan/gorm-zero/gormc/config"
 	"gorm.io/driver/mysql"
 	"gorm.io/gorm"
 	"gorm.io/gorm/logger"
@@ -28,7 +29,7 @@ func (m *Mysql) Dsn() string {
 }
 
 func (m *Mysql) GetGormLogMode() logger.LogLevel {
-	return overwriteGormLogMode(m.LogMode)
+	return config.OverwriteGormLogMode(m.LogMode)
 }
 
 func (m *Mysql) GetSlowThreshold() time.Duration {
@@ -38,18 +39,35 @@ func (m *Mysql) GetColorful() bool {
 	return true
 }
 
-func ConnectMysql(m Mysql) (*gorm.DB, error) {
+func Connect(m Mysql) (*gorm.DB, error) {
 	if m.Dbname == "" {
 		return nil, errors.New("database name is empty")
 	}
 	mysqlCfg := mysql.Config{
 		DSN: m.Dsn(),
 	}
-	newLogger := newDefaultGormLogger(&m)
+	newLogger := config.NewDefaultGormLogger(&m)
 	db, err := gorm.Open(mysql.New(mysqlCfg), &gorm.Config{
-		//Logger: logger.Default.LogMode(logger.Info),
 		Logger: newLogger,
 	})
+	if err != nil {
+		return nil, err
+	} else {
+		sqldb, _ := db.DB()
+		sqldb.SetMaxIdleConns(m.MaxIdleConns)
+		sqldb.SetMaxOpenConns(m.MaxOpenConns)
+		return db, nil
+	}
+}
+
+func ConnectWithConfig(m Mysql, cfg *gorm.Config) (*gorm.DB, error) {
+	if m.Dbname == "" {
+		return nil, errors.New("database name is empty")
+	}
+	mysqlCfg := mysql.Config{
+		DSN: m.Dsn(),
+	}
+	db, err := gorm.Open(mysql.New(mysqlCfg), cfg)
 	if err != nil {
 		return nil, err
 	} else {

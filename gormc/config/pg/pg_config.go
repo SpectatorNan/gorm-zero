@@ -1,8 +1,9 @@
-package gormc
+package pg
 
 import (
 	"errors"
 	"fmt"
+	"github.com/SpectatorNan/gorm-zero/gormc/config"
 	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
 	"gorm.io/gorm/logger"
@@ -28,7 +29,7 @@ func (m *PgSql) Dsn() string {
 	return fmt.Sprintf("user=%s password=%s dbname=%s host=%s port=%d sslmode=%s TimeZone=%s", m.Username, m.Password, m.Dbname, m.Path, m.Port, m.SslMode, m.TimeZone)
 }
 func (m *PgSql) GetGormLogMode() logger.LogLevel {
-	return overwriteGormLogMode(m.LogMode)
+	return config.OverwriteGormLogMode(m.LogMode)
 }
 
 func (m *PgSql) GetSlowThreshold() time.Duration {
@@ -38,11 +39,11 @@ func (m *PgSql) GetColorful() bool {
 	return true
 }
 
-func ConnectPgSql(m PgSql) (*gorm.DB, error) {
+func Connect(m PgSql) (*gorm.DB, error) {
 	if m.Dbname == "" {
 		return nil, errors.New("database name is empty")
 	}
-	newLogger := newDefaultGormLogger(&m)
+	newLogger := config.NewDefaultGormLogger(&m)
 	pgsqlCfg := postgres.Config{
 		DSN:                  m.Dsn(),
 		PreferSimpleProtocol: true, // disables implicit prepared statement usage
@@ -50,6 +51,25 @@ func ConnectPgSql(m PgSql) (*gorm.DB, error) {
 	db, err := gorm.Open(postgres.New(pgsqlCfg), &gorm.Config{
 		Logger: newLogger,
 	})
+	if err != nil {
+		return nil, err
+	} else {
+		sqldb, _ := db.DB()
+		sqldb.SetMaxIdleConns(m.MaxIdleConns)
+		sqldb.SetMaxOpenConns(m.MaxOpenConns)
+		return db, nil
+	}
+}
+
+func ConnectWithConfig(m PgSql, cfg *gorm.Config) (*gorm.DB, error) {
+	if m.Dbname == "" {
+		return nil, errors.New("database name is empty")
+	}
+	pgsqlCfg := postgres.Config{
+		DSN:                  m.Dsn(),
+		PreferSimpleProtocol: true, // disables implicit prepared statement usage
+	}
+	db, err := gorm.Open(postgres.New(pgsqlCfg), cfg)
 	if err != nil {
 		return nil, err
 	} else {
