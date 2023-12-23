@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"github.com/SpectatorNan/gorm-zero/gormc/config"
+	"github.com/SpectatorNan/gorm-zero/gormc/plugins"
 	"gorm.io/driver/mysql"
 	"gorm.io/gorm"
 	"gorm.io/gorm/logger"
@@ -70,10 +71,16 @@ func ConnectWithConfig(m Mysql, cfg *gorm.Config) (*gorm.DB, error) {
 	db, err := gorm.Open(mysql.New(mysqlCfg), cfg)
 	if err != nil {
 		return nil, err
-	} else {
+	}
+
+	err = plugins.InitPlugins(db)
+	if err != nil {
+		return nil, err
+	}
+
 		sqldb, _ := db.DB()
 		sqldb.SetMaxIdleConns(m.MaxIdleConns)
 		sqldb.SetMaxOpenConns(m.MaxOpenConns)
 		return db, nil
-	}
+
 }

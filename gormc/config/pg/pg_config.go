@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"github.com/SpectatorNan/gorm-zero/gormc/config"
+	"github.com/SpectatorNan/gorm-zero/gormc/plugins"
 	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
 	"gorm.io/gorm/logger"
@@ -72,10 +73,15 @@ func ConnectWithConfig(m PgSql, cfg *gorm.Config) (*gorm.DB, error) {
 	db, err := gorm.Open(postgres.New(pgsqlCfg), cfg)
 	if err != nil {
 		return nil, err
-	} else {
-		sqldb, _ := db.DB()
-		sqldb.SetMaxIdleConns(m.MaxIdleConns)
-		sqldb.SetMaxOpenConns(m.MaxOpenConns)
-		return db, nil
 	}
+
+	err = plugins.InitPlugins(db)
+	if err != nil {
+		return nil, err
+	}
+	sqldb, _ := db.DB()
+	sqldb.SetMaxIdleConns(m.MaxIdleConns)
+	sqldb.SetMaxOpenConns(m.MaxOpenConns)
+	return db, nil
+
 }
