@@ -1,7 +1,6 @@
 package utils
 
 import (
-	"fmt"
 	"path/filepath"
 	"runtime"
 	"strconv"
@@ -46,7 +45,6 @@ func FileWithLineNum() string {
 	// the second caller usually from gorm internal, so set i start from 2
 	for i := 2; i < 15; i++ {
 		_, file, line, ok := runtime.Caller(i)
-		fmt.Println(file)
 		inGorm := strings.Contains(file, "gorm.io")
 		inGormZero := strings.HasPrefix(file, gormZeroSourceDir)
 		if ok && (!(inGorm || inGormZero) || strings.HasSuffix(file, "_test.go")) {
