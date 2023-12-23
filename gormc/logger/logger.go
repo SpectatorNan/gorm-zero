@@ -3,7 +3,6 @@ package logger
 import (
 	"context"
 	"errors"
-	"fmt"
 	"github.com/SpectatorNan/gorm-zero/gormc/utils"
 	"github.com/zeromicro/go-zero/core/logx"
 	gormLogger "gorm.io/gorm/logger"
@@ -55,33 +54,24 @@ func (l *logger) LogMode(level gormLogger.LogLevel) gormLogger.Interface {
 }
 
 func (l *logger) Info(ctx context.Context, msg string, data ...interface{}) {
-	fmt.Println("Info")
-	//logx.WithContext(ctx).Infof("Info")
-	//if l.LogLevel >= gormLogger.Info {
-	//	logx.WithContext(ctx).Infof(l.infoStr+msg, append([]interface{}{utils.FileWithLineNum()}, data...)...)
-	//}
+	if l.LogLevel >= gormLogger.Info {
+		logx.WithContext(ctx).Infof(l.infoStr+msg, append([]interface{}{utils.FileWithLineNum()}, data...)...)
+	}
 }
 
 func (l *logger) Warn(ctx context.Context, msg string, data ...interface{}) {
-	fmt.Println("Warn")
-	//logx.WithContext(ctx).Infof("Warn")
-	//if l.LogLevel >= gormLogger.Warn {
-	//	logx.WithContext(ctx).Infof(l.warnStr+msg, append([]interface{}{utils.FileWithLineNum()}, data...)...)
-	//}
+	if l.LogLevel >= gormLogger.Warn {
+		logx.WithContext(ctx).Infof(l.warnStr+msg, append([]interface{}{utils.FileWithLineNum()}, data...)...)
+	}
 }
 
 func (l *logger) Error(ctx context.Context, msg string, data ...interface{}) {
-	fmt.Println("Error")
-	//logx.WithContext(ctx).Infof("Error")
-	//if l.LogLevel >= gormLogger.Error {
-	//	logx.WithContext(ctx).Infof(l.errStr+msg, append([]interface{}{utils.FileWithLineNum()}, data...)...)
-	//}
+	if l.LogLevel >= gormLogger.Error {
+		logx.WithContext(ctx).Infof(l.errStr+msg, append([]interface{}{utils.FileWithLineNum()}, data...)...)
+	}
 }
 
 func (l *logger) Trace(ctx context.Context, begin time.Time, fc func() (string, int64), err error) {
-	fmt.Println("Trace")
-
-	logx.WithContext(ctx).Infof("Trace")
 	if l.LogLevel <= gormLogger.Silent {
 		return
 	}
