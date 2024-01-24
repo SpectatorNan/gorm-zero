@@ -9,6 +9,13 @@ import (
 var tableSortDesc = "descend"
 var tableSortAsc = "ascend"
 
+func Asc() string {
+	return tableSortAsc
+}
+func Desc() string {
+	return tableSortDesc
+}
+
 func SetTableSortAsc(key string) {
 	tableSortAsc = key
 }
@@ -25,7 +32,7 @@ func FindPageList[T any](ctx context.Context, cc GormcCacheConn, page *ListReq, 
 	var res []T
 	var count int64
 	err := cc.ExecNoCacheCtx(ctx, func(conn *gorm.DB) error {
-		return fn(conn).Count(&count).Error
+		return fn(conn).Select("*").Count(&count).Error
 	})
 	if err != nil {
 		return nil, 0, err
