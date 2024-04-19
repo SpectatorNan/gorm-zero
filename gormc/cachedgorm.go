@@ -194,6 +194,7 @@ func (cc CachedConn) QueryWithExpireCtx(ctx context.Context, v interface{}, key 
 	//})
 }
 
+// QueryWithCallbackExpireCtx unmarshals into v with given key, set expire duration from callback and query func.
 func (cc CachedConn) QueryWithCallbackExpireCtx(ctx context.Context, v interface{}, key string, query QueryCtxFn, callback func(interface{}) time.Duration) (err error) {
 	ctx, span := startSpan(ctx, "QueryWithCallbackExpire")
 	defer func() {
