@@ -71,4 +71,11 @@ func TestGormc_QueryWithExpire(t *testing.T) {
 		return
 	}
 
+	err = gormc.QueryWithCallbackExpireCtx(context.Background(), &str, "any", func(conn *gorm.DB, v interface{}) error {
+		*v.(*string) = "value"
+		return nil
+	}, func(i interface{}) time.Duration {
+		return time.Second * 5
+	})
+
 }
