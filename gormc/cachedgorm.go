@@ -200,7 +200,9 @@ func (cc CachedConn) QueryWithCallbackExpireCtx(ctx context.Context, v interface
 	defer func() {
 		endSpan(span, err)
 	}()
-	err = query(cc.db.WithContext(ctx), v)
+	err = cc.cache.TakeCtx(ctx, v, key, func(v interface{}) error {
+		return query(cc.db.WithContext(ctx), v)
+	})
 	if err != nil {
 		return err
 	}
