@@ -6,11 +6,11 @@ func (m *default{{.upperStartCamelObject}}Model) Insert(ctx context.Context, tx 
         if tx != nil {
             db = tx
         }
-        return db.Save(&data).Error
+        return db.Omit({{.lowerStartCamelObject}}OmitColumns...).Save(&data).Error
 	}, m.getCacheKeys(data)...){{else}}db := m.conn
         if tx != nil {
             db = tx
         }
-        err:= db.WithContext(ctx).Save(&data).Error{{end}}
+        err:= db.WithContext(ctx).Omit({{.lowerStartCamelObject}}OmitColumns...).Save(&data).Error{{end}}
 	return err
 }
