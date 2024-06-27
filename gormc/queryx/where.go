@@ -45,3 +45,10 @@ func WhereInt64s(db *gorm.DB, whereStr string, val []int64) *gorm.DB {
 	}
 	return db
 }
+
+func WhereInt64(db *gorm.DB, whereStr string, val int64) *gorm.DB {
+	if val != 0 {
+		return db.Where(whereStr, val)
+	}
+	return db
+}
