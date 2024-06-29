@@ -11,6 +11,7 @@ import (
 	{{ if or (.gormCreatedAt) (.gormUpdatedAt) }} "time" {{ end }}
 )
 {{end}}
+var {{.lowerStartCamelObject}}OmitColumns []string = []string{ /*write some omit columns that you want to skip insert or update, like create_time, update_time, etc...*/ }
 var _ {{.upperStartCamelObject}}Model = (*custom{{.upperStartCamelObject}}Model)(nil)
 
 type (
