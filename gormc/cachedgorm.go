@@ -184,15 +184,33 @@ func (cc CachedConn) QueryWithExpireCtx(ctx context.Context, v interface{}, key 
 	defer func() {
 		endSpan(span, err)
 	}()
-	err = query(cc.db.WithContext(ctx), v)
+	err = cc.cache.TakeCtx(ctx, v, key, func(v interface{}) error {
+		return query(cc.db.WithContext(ctx), v)
+	})
 	if err != nil {
 		return err
 	}
 	return cc.cache.SetWithExpireCtx(ctx, key, v, cc.aroundDuration(expire))
-	//return cc.cache.TakeWithSetExpireCtx(ctx, v, key, expire, func(val interface{}) error {
-	//	return query(cc.db.WithContext(ctx), v)
-	//})
 }
+
+// QueryWithCallbackExpireCtx unmarshals into v with given key, set expire duration from callback and query func.
+func (cc CachedConn) QueryWithCallbackExpireCtx(ctx context.Context, v interface{}, key string, query QueryCtxFn, callback func(interface{}) time.Duration) (err error) {
+	ctx, span := startSpan(ctx, "QueryWithCallbackExpire")
+	defer func() {
+		endSpan(span, err)
+	}()
+	err = cc.cache.TakeCtx(ctx, v, key, func(v interface{}) error {
+		return query(cc.db.WithContext(ctx), v)
+	})
+	if err != nil {
+		return err
+	}
+	if callback == nil {
+		return cc.QueryCtx(ctx, v, key, query)
+	}
+	return cc.cache.SetWithExpireCtx(ctx, key, v, callback(v))
+}
+
 func (cc CachedConn) aroundDuration(duration time.Duration) time.Duration {
 	return cc.unstableExpiryTime.AroundDuration(duration)
 }

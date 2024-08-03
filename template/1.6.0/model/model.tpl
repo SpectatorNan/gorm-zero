@@ -46,17 +46,22 @@ func (s *{{.upperStartCamelObject}}) BeforeUpdate(tx *gorm.DB) error {
 }
 {{ end }}
 // New{{.upperStartCamelObject}}Model returns a model for the database table.
-func New{{.upperStartCamelObject}}Model(conn *gorm.DB{{if .withCache}}, c cache.CacheConf, opts ...cache.Option{{end}}) {{.upperStartCamelObject}}Model {
+func New{{.upperStartCamelObject}}Model(conn *gorm.DB{{if .withCache}}, c cache.CacheConf{{end}}) {{.upperStartCamelObject}}Model {
 	return &custom{{.upperStartCamelObject}}Model{
-		default{{.upperStartCamelObject}}Model: new{{.upperStartCamelObject}}Model(conn{{if .withCache}}, c, opts...{{end}}),
+		default{{.upperStartCamelObject}}Model: new{{.upperStartCamelObject}}Model(conn{{if .withCache}}, c{{end}}),
 	}
 }
 {{if .withCache}}
+func (m *default{{.upperStartCamelObject}}Model) getNewModelNeedReloadCacheKeys(data *{{.upperStartCamelObject}}) []string {
+    if data == nil {
+        return []string{}
+    }
+	return []string{}
+}
 func (m *default{{.upperStartCamelObject}}Model) customCacheKeys(data *{{.upperStartCamelObject}}) []string {
     if data == nil {
         return []string{}
     }
 	return []string{}
 }
-{{end}}
-
+{{ end }}
