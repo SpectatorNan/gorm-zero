@@ -3,12 +3,15 @@ package pagex
 const PageLimit = 20
 
 type ListReq struct {
-	Page     int    `json:"page,optional,default=1" form:"page,optional,default=1"`
-	PageSize int    `json:"pageSize,optional,default=10" form:"pageSize,optional,default=10"`
-	Keyword  string `json:"keyword,optional" form:"keyword,optional"`
+	Page     int `json:"page,optional,default=1" form:"page,optional,default=1"`
+	PageSize int `json:"pageSize,optional,default=10" form:"pageSize,optional,default=10"`
+	LastSize int `json:"listSize,optional,default=0" form:"listSize,optional,default=0"`
 }
 
 func (page *ListReq) Limit() int {
+	if page.LastSize > 0 {
+		return page.LastSize
+	}
 	if page.PageSize < 1 {
 		return PageLimit
 	}
