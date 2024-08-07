@@ -1,6 +1,8 @@
 module github.com/SpectatorNan/gorm-zero
 
-go 1.20
+go 1.21
+
+toolchain go1.21.12
 
 require (
 	github.com/zeromicro/go-zero v1.7.0

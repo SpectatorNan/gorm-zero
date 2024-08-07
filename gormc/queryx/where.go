@@ -1,7 +1,6 @@
 package queryx
 
 import (
-	"fmt"
 	"gorm.io/gorm"
 	"strings"
 )
@@ -43,7 +42,6 @@ func WhereInt64s(db *gorm.DB, whereStr string, val []int64) *gorm.DB {
 		return db.Where(whereStr, val)
 	} else if len(val) == 1 {
 		whereStr = replaceLastInWithEqual(whereStr)
-		fmt.Println("whereStr", whereStr)
 		return db.Where(whereStr, val[0])
 	}
 	return db
