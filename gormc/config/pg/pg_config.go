@@ -22,7 +22,7 @@ type PgSql struct {
 	MaxIdleConns  int    `json:",default=10"`                               // 空闲中的最大连接数
 	MaxOpenConns  int    `json:",default=10"`                               // 打开到数据库的最大连接数
 	LogMode       string `json:",default=dev,options=dev|test|prod|silent"` // 是否开启Gorm全局日志
-	LogZap        bool   // 是否通过zap写入日志文件
+	LogColorful   bool   `json:",default=false"`                             // 是否开启日志高亮
 	SlowThreshold int64  `json:",default=1000"`
 }
 
@@ -37,7 +37,7 @@ func (m *PgSql) GetSlowThreshold() time.Duration {
 	return time.Duration(m.SlowThreshold) * time.Millisecond
 }
 func (m *PgSql) GetColorful() bool {
-	return true
+	return m.LogColorful
 }
 
 func Connect(m PgSql) (*gorm.DB, error) {

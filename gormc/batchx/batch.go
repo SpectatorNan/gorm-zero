@@ -7,7 +7,7 @@ import (
 )
 
 type BatchExecModel[DBModel any] interface {
-	CustomCacheKeys(data *DBModel) []string
+	GetCacheKeys(data *DBModel) []string
 	ExecCtx(ctx context.Context, execCtx gormc.ExecCtxFn, keys ...string) error
 }
 
@@ -29,7 +29,7 @@ func getCacheKeysByMultiData[DBModel any, Model BatchExecModel[DBModel]](m Model
 	}
 	var keys []string
 	for _, v := range data {
-		keys = append(keys, m.CustomCacheKeys(&v)...)
+		keys = append(keys, m.GetCacheKeys(&v)...)
 	}
 	return keys
 }
