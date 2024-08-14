@@ -1,0 +1,1 @@
+`gorm:"column:{{.field}}{{if eq .field .data.Table.PrimaryKey.Field.Name.Source}};primary_key{{end}}{{if eq .field "deleted_at"}};index{{end}}"`
