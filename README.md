@@ -1,23 +1,24 @@
 # gorm-zero
- go zero gorm extension
-
-### If you use go zero, and you want to use Gorm. You can use this library.
+A go-zero gorm extension. If you use go-zero, and you want to use GORM. You can use this extension.
 
 
-# Usage
+## Installation
 
-- add the dependent
+- Add the dependency
 ```shell
 go get github.com/SpectatorNan/gorm-zero
 ```
-- replace  template/model in your project with gorm-zero/template/{goctl version}/model
-- generate
+- Replace `template/model` in your project with `gorm-zero/template/{goctl version}/model`
+- Generate
 ```shell
 goctl model mysql -src={patterns} -dir={dir} -cache --home ./template
 ```
 
-## Mysql
-### Config
+## Basic Usage
+Currently we support two databases: MySQL and PostgreSQL. For example:
+
+### MySQL
+* Config
 ```go
 import (
     "github.com/SpectatorNan/gorm-zero/gormc/config/mysql"
@@ -27,10 +28,10 @@ type Config struct {
     ...
 }
 ```
-## Initialization
+* Initialization
 ```go
 import (
-"github.com/SpectatorNan/gorm-zero/gormc/config/mysql"
+    "github.com/SpectatorNan/gorm-zero/gormc/config/mysql"
 )
 func NewServiceContext(c config.Config) *ServiceContext {
     db, err := mysql.Connect(c.Mysql)
@@ -41,21 +42,22 @@ func NewServiceContext(c config.Config) *ServiceContext {
 }
 ```
 
-## PgSql
-### Config
+### PostgreSQL
+* Config
 ```go
 import (
-"github.com/SpectatorNan/gorm-zero/gormc/config/pg"
+    "github.com/SpectatorNan/gorm-zero/gormc/config/pg"
 )
 type Config struct {
     PgSql pg.PgSql
     ...
 }
 ```
-## Initialization
+
+* Initialization
 ```go
 import (
-"github.com/SpectatorNan/gorm-zero/gormc/config/pg"
+    "github.com/SpectatorNan/gorm-zero/gormc/config/pg"
 )
 func NewServiceContext(c config.Config) *ServiceContext {
     db, err := pg.Connect(c.PgSql)
@@ -66,9 +68,9 @@ func NewServiceContext(c config.Config) *ServiceContext {
 }
 ```
 
-## Useage
+## Quick Start
 
-### Query With Cache And Custom Expire Duration
+* Query with cache and custom expire duration
 ```go
     gormzeroUsersIdKey := fmt.Sprintf("%s%v", cacheGormzeroUsersIdExpirePrefix, id)
     var resp Users
@@ -85,7 +87,7 @@ func NewServiceContext(c config.Config) *ServiceContext {
     }
 ```
 
-### Query With Cache And Default Expire Duration
+* Query with cache and default expire duration
 ```go
     gormzeroUsersIdKey := fmt.Sprintf("%s%v", cacheGormzeroUsersIdPrefix, id)
     var resp Users
@@ -103,5 +105,5 @@ func NewServiceContext(c config.Config) *ServiceContext {
 ```
 
 
-## Usage Example
+## Examples
 - go zero model example link: [gorm-zero-example](https://github.com/SpectatorNan/gorm-zero-example)
