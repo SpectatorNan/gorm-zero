@@ -3,6 +3,7 @@ package logger
 import (
 	"context"
 	"errors"
+	"fmt"
 	"github.com/SpectatorNan/gorm-zero/gormc/utils"
 	"github.com/zeromicro/go-zero/core/logx"
 	gormLogger "gorm.io/gorm/logger"
@@ -61,13 +62,13 @@ func (l *logger) Info(ctx context.Context, msg string, data ...interface{}) {
 
 func (l *logger) Warn(ctx context.Context, msg string, data ...interface{}) {
 	if l.LogLevel >= gormLogger.Warn {
-		logx.WithContext(ctx).Infof(l.warnStr+msg, append([]interface{}{utils.FileWithLineNum()}, data...)...)
+		logx.WithContext(ctx).Slowf(l.warnStr+msg, append([]interface{}{utils.FileWithLineNum()}, data...)...)
 	}
 }
 
 func (l *logger) Error(ctx context.Context, msg string, data ...interface{}) {
 	if l.LogLevel >= gormLogger.Error {
-		logx.WithContext(ctx).Infof(l.errStr+msg, append([]interface{}{utils.FileWithLineNum()}, data...)...)
+		logx.WithContext(ctx).Errorf(l.errStr+msg, append([]interface{}{utils.FileWithLineNum()}, data...)...)
 	}
 }
 
@@ -87,14 +88,11 @@ func (l *logger) Trace(ctx context.Context, begin time.Time, fc func() (string, 
 		}
 	case elapsed > l.SlowThreshold && l.SlowThreshold != 0 && l.LogLevel >= gormLogger.Warn:
 		sql, rows := fc()
-		slowLog := l.traceWarnStr
-		if err != nil {
-			slowLog = l.traceErrStr
-		}
+		slowLog := fmt.Sprintf("SLOW SQL >= %v", l.SlowThreshold)
 		if rows == -1 {
-			logx.WithContext(ctx).Infof(slowLog, utils.FileWithLineNum(), err, float64(elapsed.Nanoseconds())/1e6, "-", sql)
+			logx.WithContext(ctx).Slowf(l.traceWarnStr, utils.FileWithLineNum(), slowLog, float64(elapsed.Nanoseconds())/1e6, "-", sql)
 		} else {
-			logx.WithContext(ctx).Infof(slowLog, utils.FileWithLineNum(), err, float64(elapsed.Nanoseconds())/1e6, rows, sql)
+			logx.WithContext(ctx).Slowf(l.traceWarnStr, utils.FileWithLineNum(), slowLog, float64(elapsed.Nanoseconds())/1e6, rows, sql)
 		}
 	case l.LogLevel == gormLogger.Info:
 		sql, rows := fc()
