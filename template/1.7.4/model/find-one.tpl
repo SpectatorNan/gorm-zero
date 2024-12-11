@@ -23,3 +23,16 @@ func (m *default{{.upperStartCamelObject}}Model) FindOne(ctx context.Context, {{
 		return nil, err
 	}{{end}}
 }
+func (m *default{{.upperStartCamelObject}}Model) FindPageList(ctx context.Context, page *pagex.ListReq, orderBy pagex.OrderBy,
+	orderKeys map[string]string, whereClause func(db *gorm.DB) *gorm.DB) ([]{{.upperStartCamelObject}}, int64, error) {
+	formatDB := func(conn *gorm.DB) (*gorm.DB, *gorm.DB) {
+		db := conn.Model(&{{.upperStartCamelObject}}{})
+		if whereClause != nil {
+			db = whereClause(db)
+		}
+		return db, nil
+	}
+
+	res, total, err := pagex.FindPageList[{{.upperStartCamelObject}}](ctx, m, page, orderBy, orderKeys, formatDB)
+	return res, total, err
+}
