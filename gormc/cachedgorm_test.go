@@ -3,6 +3,7 @@ package gormc
 import (
 	"context"
 	"github.com/zeromicro/go-zero/core/logx"
+	"github.com/zeromicro/go-zero/core/mathx"
 	"github.com/zeromicro/go-zero/core/stat"
 	"github.com/zeromicro/go-zero/core/stores/cache"
 	"github.com/zeromicro/go-zero/core/stores/redis"
@@ -77,5 +78,16 @@ func TestGormc_QueryWithExpire(t *testing.T) {
 	}, func(i interface{}) time.Duration {
 		return time.Second * 5
 	})
+
+}
+
+func TestUnstable(t *testing.T) {
+
+	unstable := mathx.NewUnstable(0.1)
+	t.Logf("unstable: %v", unstable.AroundDuration(5*time.Minute))
+	t.Logf("unstable: %v", unstable.AroundDuration(5*time.Minute))
+	t.Logf("unstable: %v", unstable.AroundDuration(5*time.Minute))
+	t.Logf("unstable: %v", unstable.AroundDuration(5*time.Minute))
+	t.Logf("unstable: %v", unstable.AroundDuration(5*time.Minute))
 
 }

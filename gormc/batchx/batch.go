@@ -31,5 +31,19 @@ func getCacheKeysByMultiData[DBModel any, Model BatchExecModel[DBModel]](m Model
 	for _, v := range data {
 		keys = append(keys, m.GetCacheKeys(&v)...)
 	}
+	keys = uniqueKeys(keys)
 	return keys
+}
+func uniqueKeys(keys []string) []string {
+	keySet := make(map[string]struct{})
+	for _, key := range keys {
+		keySet[key] = struct{}{}
+	}
+
+	uniKeys := make([]string, 0, len(keySet))
+	for key := range keySet {
+		uniKeys = append(uniKeys, key)
+	}
+
+	return uniKeys
 }
