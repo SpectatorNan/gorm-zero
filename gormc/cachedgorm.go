@@ -3,6 +3,7 @@ package gormc
 import (
 	"context"
 	"database/sql"
+	"errors"
 	"time"
 
 	"github.com/zeromicro/go-zero/core/mathx"
@@ -45,7 +46,7 @@ type (
 	// PrimaryQueryCtxFn defines the query method that based on primary keys.
 	PrimaryQueryCtxFn func(conn *gorm.DB, v, primary interface{}) error
 	// QueryCtxFn defines the query method.
-	QueryCtxFn func(conn *gorm.DB, v interface{}) error
+	QueryCtxFn func(conn *gorm.DB) error
 
 	CachedConn struct {
 		db                 *gorm.DB
@@ -166,16 +167,16 @@ func (cc CachedConn) QueryCtx(ctx context.Context, v interface{}, key string, qu
 		endSpan(span, err)
 	}()
 	return cc.cache.TakeCtx(ctx, v, key, func(v interface{}) error {
-		return query(cc.db.WithContext(ctx), v)
+		return query(cc.db.WithContext(ctx))
 	})
 }
 
-func (cc CachedConn) QueryNoCacheCtx(ctx context.Context, v interface{}, query QueryCtxFn) (err error) {
+func (cc CachedConn) QueryNoCacheCtx(ctx context.Context, query QueryCtxFn) (err error) {
 	ctx, span := startSpan(ctx, "QueryNoCache")
 	defer func() {
 		endSpan(span, err)
 	}()
-	return query(cc.db.WithContext(ctx), v)
+	return query(cc.db.WithContext(ctx))
 }
 
 // QueryWithExpireCtx unmarshals into v with given key, set expire duration and query func.
@@ -185,7 +186,7 @@ func (cc CachedConn) QueryWithExpireCtx(ctx context.Context, v interface{}, key 
 		endSpan(span, err)
 	}()
 	err = cc.cache.TakeCtx(ctx, v, key, func(v interface{}) error {
-		return query(cc.db.WithContext(ctx), v)
+		return query(cc.db.WithContext(ctx))
 	})
 	if err != nil {
 		return err
@@ -200,7 +201,7 @@ func (cc CachedConn) QueryWithCallbackExpireCtx(ctx context.Context, v interface
 		endSpan(span, err)
 	}()
 	err = cc.cache.TakeCtx(ctx, v, key, func(v interface{}) error {
-		return query(cc.db.WithContext(ctx), v)
+		return query(cc.db.WithContext(ctx))
 	})
 	if err != nil {
 		return err
@@ -256,7 +257,7 @@ func startSpan(ctx context.Context, method string) (context.Context, oteltrace.S
 func endSpan(span oteltrace.Span, err error) {
 	defer span.End()
 
-	if err == nil || err == ErrNotFound {
+	if err == nil || errors.Is(err, ErrNotFound) {
 		span.SetStatus(codes.Ok, "")
 		return
 	}
