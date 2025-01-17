@@ -10,5 +10,5 @@ import (
 	"github.com/zeromicro/go-zero/core/stores/cache"
 	"gorm.io/gorm"
 
-	{{.third}}
+	{{if .third}}{{.third}}{{end}}
 )

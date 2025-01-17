@@ -6,5 +6,5 @@ import (
 
 	"gorm.io/gorm"
 
-	{{.third}}
+	{{if .third}}{{.third}}{{end}}
 )
