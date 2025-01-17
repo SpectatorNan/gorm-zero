@@ -35,7 +35,7 @@ func (m *default{{.upperStartCamelObject}}Model) BatchInsert(ctx context.Context
                 db = tx
             }
             return db.Create(&news).Error
-    	}){{else}}db := conn
+    	}){{else}}db := m.conn
         if tx != nil {
             db = tx
         }

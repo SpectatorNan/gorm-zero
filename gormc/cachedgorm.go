@@ -53,6 +53,10 @@ type (
 		cache              cache.Cache
 		unstableExpiryTime mathx.Unstable
 	}
+
+	Conn struct {
+		db *gorm.DB
+	}
 )
 
 // NewConn returns a CachedConn with a redis cluster cache.
@@ -111,6 +115,20 @@ func (cc CachedConn) ExecCtx(ctx context.Context, execCtx ExecCtxFn, keys ...str
 		return err
 	}
 	return nil
+}
+
+// ExecNoCache runs exec with given sql statement, without affecting cache.
+func (cc Conn) ExecNoCache(exec ExecCtxFn) error {
+	return cc.ExecNoCacheCtx(context.Background(), exec)
+}
+
+// ExecNoCacheCtx runs exec with given sql statement, without affecting cache.
+func (cc Conn) ExecNoCacheCtx(ctx context.Context, execCtx ExecCtxFn) (err error) {
+	ctx, span := startSpan(ctx, "ExecNoCache")
+	defer func() {
+		endSpan(span, err)
+	}()
+	return execCtx(cc.db.WithContext(ctx))
 }
 
 // ExecNoCache runs exec with given sql statement, without affecting cache.
