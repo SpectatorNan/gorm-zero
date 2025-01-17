@@ -24,19 +24,21 @@ func (m *default{{.upperStartCamelObject}}Model) Insert(ctx context.Context, tx 
         if tx != nil {
             db = tx
         }
-        err:= db.WithContext(ctx).Create(&data).Error{{end}}
+        err := db.WithContext(ctx).Create(&data).Error{{end}}
 	return err
 }
 func (m *default{{.upperStartCamelObject}}Model) BatchInsert(ctx context.Context, tx *gorm.DB, news []{{.upperStartCamelObject}}) error {
 	{{if .withCache}}
     err := batchx.BatchExecCtx(ctx, m, news, func(conn *gorm.DB) error {
-    {{else}}
-    err := m.ExecNoCacheCtx(ctx, func(conn *gorm.DB) error {
-    {{end}}db := conn
+    db := conn
+            if tx != nil {
+                db = tx
+            }
+            return db.Create(&news).Error
+    	}){{else}}db := conn
         if tx != nil {
             db = tx
         }
-        return db.Create(&news).Error
-	})
+        err := db.Create(&news).Error{{end}}
 	return err
 }

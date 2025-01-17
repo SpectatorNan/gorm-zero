@@ -24,14 +24,16 @@ func (m *default{{.upperStartCamelObject}}Model) Delete(ctx context.Context, tx 
 
 func (m *default{{.upperStartCamelObject}}Model) BatchDelete(ctx context.Context, tx *gorm.DB, datas []{{.upperStartCamelObject}}) error {
 	{{if .withCache}}err := batchx.BatchExecCtx(ctx, m, datas, func(conn *gorm.DB) error {
-    {{else}}err := m.ExecNoCacheCtx(ctx, func(conn *gorm.DB) error {
-    {{end}}
-		db := conn
+	db := conn
+            if tx != nil {
+                db = tx
+            }
+            return db.Delete(&datas).Error
+    	}){{else}}db := conn
         if tx != nil {
             db = tx
         }
-        return db.Delete(&datas).Error
-	})
+        err := db.Delete(&datas).Error{{end}}
 	return err
 }
 
