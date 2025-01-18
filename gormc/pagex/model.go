@@ -5,7 +5,7 @@ const PageLimit = 20
 type ListReq struct {
 	Page     int `json:"page,optional,default=1" form:"page,optional,default=1"`
 	PageSize int `json:"pageSize,optional,default=10" form:"pageSize,optional,default=10"`
-	LastSize int `json:"listSize,optional,default=0" form:"listSize,optional,default=0"`
+	LastSize int `json:"lastSize,optional,default=0" form:"lastSize,optional,default=0"`
 }
 
 func (page *ListReq) Limit() int {
@@ -31,4 +31,11 @@ func (page *ListReq) Offset() int {
 type OrderBy struct {
 	OrderKey string `json:"orderKey"`
 	Sort     string `json:"sort"`
+}
+
+func EmptyOrderBy() OrderBy {
+	return OrderBy{
+		OrderKey: "",
+		Sort:     "",
+	}
 }
