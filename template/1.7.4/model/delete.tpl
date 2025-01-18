@@ -29,7 +29,7 @@ func (m *default{{.upperStartCamelObject}}Model) BatchDelete(ctx context.Context
                 db = tx
             }
             return db.Delete(&datas).Error
-    	}){{else}}db := conn
+    	}){{else}}db := m.conn
         if tx != nil {
             db = tx
         }

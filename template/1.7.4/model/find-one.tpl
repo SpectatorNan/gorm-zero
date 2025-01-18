@@ -35,13 +35,13 @@ func (m *default{{.upperStartCamelObject}}Model) FindPageList(ctx context.Contex
     	res, total, err := pagex.FindPageList[{{.upperStartCamelObject}}](ctx, m, page, orderBy, orderKeys, formatDB)
     	return res, total, err{{else}}conn := m.conn
                                       	formatDB := func() (*gorm.DB, *gorm.DB) {
-                                      		db := conn.Model(&Users{})
+                                      		db := conn.Model(&{{.upperStartCamelObject}}{})
                                       		if whereClause != nil {
                                       			db = whereClause(db)
                                       		}
                                       		return db, nil
                                       	}
 
-                                      	res, total, err := pagex.FindPageListWithCount[Users](ctx, page, orderBy, orderKeys, formatDB)
+                                      	res, total, err := pagex.FindPageListWithCount[{{.upperStartCamelObject}}](ctx, page, orderBy, orderKeys, formatDB)
                                       	return res, total, err{{end}}
 }
