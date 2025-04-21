@@ -10,7 +10,6 @@ import (
 	"github.com/zeromicro/go-zero/core/stores/cache"
 	"github.com/zeromicro/go-zero/core/stores/redis"
 	"github.com/zeromicro/go-zero/core/syncx"
-	"github.com/zeromicro/go-zero/core/trace"
 	"go.opentelemetry.io/otel"
 	"go.opentelemetry.io/otel/attribute"
 	"go.opentelemetry.io/otel/codes"
@@ -20,6 +19,9 @@ import (
 
 // see doc/sql-cache.md
 const cacheSafeGapBetweenIndexAndPrimary = time.Second * 5
+
+// traceName is used to identify the trace name for the SQL execution.
+const traceName = "gorm-zero"
 
 // spanName is used to identify the span name for the SQL execution.
 const spanName = "sql"
@@ -262,7 +264,7 @@ func (cc CachedConn) TransactCtx(ctx context.Context, fn func(db *gorm.DB) error
 var sqlAttributeKey = attribute.Key("sql.method")
 
 func startSpan(ctx context.Context, method string) (context.Context, oteltrace.Span) {
-	tracer := otel.Tracer(trace.TraceName)
+	tracer := otel.Tracer(traceName)
 	start, span := tracer.Start(ctx,
 		spanName,
 		oteltrace.WithSpanKind(oteltrace.SpanKindClient),

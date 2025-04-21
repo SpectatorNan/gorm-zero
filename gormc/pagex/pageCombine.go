@@ -24,7 +24,7 @@ func SetTableSortDesc(key string) {
 }
 
 type GormcCacheConn interface {
-	QueryNoCacheCtx(ctx context.Context, v interface{}, fn gormc.QueryCtxFn) error
+	QueryNoCacheCtx(ctx context.Context, fn gormc.QueryCtxFn) error
 	ExecNoCacheCtx(ctx context.Context, execCtx gormc.ExecCtxFn) error
 }
 
@@ -45,7 +45,7 @@ func FindPageList[T any](ctx context.Context, cc GormcCacheConn, page *ListReq, 
 	if err != nil {
 		return nil, 0, err
 	}
-	err = cc.QueryNoCacheCtx(ctx, &res, func(conn *gorm.DB) error {
+	err = cc.QueryNoCacheCtx(ctx, func(conn *gorm.DB) error {
 		db, _ := fn(conn)
 		db = db.Scopes(Paginate(page))
 		if orderStr, ok := orderKeys[orderBy.OrderKey]; ok {
