@@ -11,14 +11,40 @@ type BatchExecModel[DBModel any] interface {
 	ExecCtx(ctx context.Context, execCtx gormc.ExecCtxFn, keys ...string) error
 }
 
-func BatchExecCtx[DBModel any, Model BatchExecModel[DBModel]](ctx context.Context, model Model, olds []DBModel, exec func(db *gorm.DB) error) error {
-	if len(olds) == 0 {
-		return nil
-	}
+func BatchExecCtx[DBModel any, Model BatchExecModel[DBModel]](
+	ctx context.Context,
+	model Model,
+	olds []DBModel,
+	exec func(db *gorm.DB) error,
+	tx *gorm.DB, // pass tx here, can be nil
+) error {
 	cacheKeys := getCacheKeysByMultiData(model, olds)
-
 	err := model.ExecCtx(ctx, func(conn *gorm.DB) error {
-		return exec(conn)
+		db := conn
+		commitTx := false
+		if tx != nil {
+			db = tx
+		} else {
+			db = db.Begin()
+			commitTx = true
+		}
+		defer func() {
+			if commitTx {
+				if r := recover(); r != nil {
+					db.Rollback()
+					panic(r)
+				}
+			}
+		}()
+		err := exec(db)
+		if commitTx {
+			if err != nil {
+				db.Rollback()
+				return err
+			}
+			return db.Commit().Error
+		}
+		return err
 	}, cacheKeys...)
 	return err
 }
