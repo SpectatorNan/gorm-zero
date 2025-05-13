@@ -3,12 +3,15 @@ package pagex
 const PageLimit = 20
 
 type ListReq struct {
+	PagePrams
+}
+type PagePrams struct {
 	Page     int `json:"page,optional,default=1" form:"page,optional,default=1"`
 	PageSize int `json:"pageSize,optional,default=10" form:"pageSize,optional,default=10"`
 	LastSize int `json:"lastSize,optional,default=0" form:"lastSize,optional,default=0"`
 }
 
-func (page *ListReq) Limit() int {
+func (page *PagePrams) Limit() int {
 	if page.LastSize > 0 {
 		return page.LastSize
 	}
@@ -17,7 +20,7 @@ func (page *ListReq) Limit() int {
 	}
 	return page.PageSize
 }
-func (page *ListReq) Offset() int {
+func (page *PagePrams) Offset() int {
 	if page.Page == 0 {
 		page.Page = 1
 	}
@@ -28,13 +31,14 @@ func (page *ListReq) Offset() int {
 	return offset
 }
 
-type OrderBy struct {
+type OrderBy OrderParams
+type OrderParams struct {
 	OrderKey string `json:"orderKey"`
 	Sort     string `json:"sort"`
 }
 
-func EmptyOrderBy() OrderBy {
-	return OrderBy{
+func EmptyOrderBy() OrderParams {
+	return OrderParams{
 		OrderKey: "",
 		Sort:     "",
 	}

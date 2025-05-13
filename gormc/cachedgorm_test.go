@@ -2,6 +2,7 @@ package gormc
 
 import (
 	"context"
+	"github.com/SpectatorNan/gorm-zero/gormx"
 	"github.com/zeromicro/go-zero/core/logx"
 	"github.com/zeromicro/go-zero/core/mathx"
 	"github.com/zeromicro/go-zero/core/stat"
@@ -61,7 +62,7 @@ func TestGormc_QueryWithExpire(t *testing.T) {
 			Weight: 100,
 		},
 	}
-	gormc := NewConn(db, ccf)
+	gormc := gormx.NewConn(db, ccf)
 	var str string
 	err = gormc.QueryWithExpireCtx(context.Background(), &str, "any", time.Second*5, func(conn *gorm.DB, v interface{}) error {
 		*v.(*string) = "value"

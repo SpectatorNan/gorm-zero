@@ -4,6 +4,7 @@ import (
 	"context"
 	"database/sql"
 	"errors"
+	"github.com/SpectatorNan/gorm-zero/gormx"
 	"time"
 
 	"github.com/zeromicro/go-zero/core/mathx"
@@ -42,7 +43,7 @@ var (
 type (
 
 	// ExecCtxFn defines the sql exec method.
-	ExecCtxFn func(conn *gorm.DB) error
+	ExecCtxFn gormx.ExecCtxFn
 	// IndexQueryCtxFn defines the query method that based on unique indexes.
 	IndexQueryCtxFn func(conn *gorm.DB, v interface{}) (interface{}, error)
 	// PrimaryQueryCtxFn defines the query method that based on primary keys.
@@ -51,13 +52,9 @@ type (
 	QueryCtxFn func(conn *gorm.DB) error
 
 	CachedConn struct {
-		db                 *gorm.DB
+		conn               gormx.Conn
 		cache              cache.Cache
 		unstableExpiryTime mathx.Unstable
-	}
-
-	Conn struct {
-		db *gorm.DB
 	}
 )
 
@@ -70,7 +67,7 @@ func NewConn(db *gorm.DB, c cache.CacheConf, opts ...cache.Option) CachedConn {
 // NewConnWithCache returns a CachedConn with a custom cache.
 func NewConnWithCache(db *gorm.DB, c cache.Cache) CachedConn {
 	return CachedConn{
-		db:                 db,
+		conn:               gormx.NewConn(db),
 		cache:              c,
 		unstableExpiryTime: mathx.NewUnstable(expiryDeviation),
 	}
@@ -109,7 +106,8 @@ func (cc CachedConn) Exec(exec ExecCtxFn, keys ...string) error {
 
 // ExecCtx runs given exec on given keys, and returns execution result.
 func (cc CachedConn) ExecCtx(ctx context.Context, execCtx ExecCtxFn, keys ...string) error {
-	err := execCtx(cc.db.WithContext(ctx))
+	gormxFn := gormx.ExecCtxFn(execCtx)
+	err := cc.conn.ExecCtx(ctx, gormxFn)
 	if err != nil {
 		return err
 	}
@@ -117,20 +115,6 @@ func (cc CachedConn) ExecCtx(ctx context.Context, execCtx ExecCtxFn, keys ...str
 		return err
 	}
 	return nil
-}
-
-// ExecNoCache runs exec with given sql statement, without affecting cache.
-func (cc Conn) ExecNoCache(exec ExecCtxFn) error {
-	return cc.ExecNoCacheCtx(context.Background(), exec)
-}
-
-// ExecNoCacheCtx runs exec with given sql statement, without affecting cache.
-func (cc Conn) ExecNoCacheCtx(ctx context.Context, execCtx ExecCtxFn) (err error) {
-	ctx, span := startSpan(ctx, "ExecNoCache")
-	defer func() {
-		endSpan(span, err)
-	}()
-	return execCtx(cc.db.WithContext(ctx))
 }
 
 // ExecNoCache runs exec with given sql statement, without affecting cache.
@@ -144,7 +128,9 @@ func (cc CachedConn) ExecNoCacheCtx(ctx context.Context, execCtx ExecCtxFn) (err
 	defer func() {
 		endSpan(span, err)
 	}()
-	return execCtx(cc.db.WithContext(ctx))
+	gormxFn := gormx.ExecCtxFn(execCtx)
+	err = cc.conn.ExecCtx(ctx, gormxFn)
+	return err
 }
 
 // QueryRowIndex unmarshals into v with given key.
@@ -164,7 +150,7 @@ func (cc CachedConn) QueryRowIndexCtx(ctx context.Context, v interface{}, key st
 	var found bool
 
 	if err = cc.cache.TakeWithExpireCtx(ctx, &primaryKey, key, func(val interface{}, expire time.Duration) error {
-		primaryKey, err = indexQuery(cc.db.WithContext(ctx), v)
+		primaryKey, err = indexQuery(cc.conn.WithContext(ctx), v)
 		if err != nil {
 			return err
 		}
@@ -177,7 +163,7 @@ func (cc CachedConn) QueryRowIndexCtx(ctx context.Context, v interface{}, key st
 		return nil
 	}
 	return cc.cache.TakeCtx(ctx, v, keyer(primaryKey), func(v interface{}) error {
-		return primaryQuery(cc.db.WithContext(ctx), v, primaryKey)
+		return primaryQuery(cc.conn.WithContext(ctx), v, primaryKey)
 	})
 }
 
@@ -187,7 +173,7 @@ func (cc CachedConn) QueryCtx(ctx context.Context, v interface{}, key string, qu
 		endSpan(span, err)
 	}()
 	return cc.cache.TakeCtx(ctx, v, key, func(v interface{}) error {
-		return query(cc.db.WithContext(ctx))
+		return query(cc.conn.WithContext(ctx))
 	})
 }
 
@@ -196,7 +182,7 @@ func (cc CachedConn) QueryNoCacheCtx(ctx context.Context, query QueryCtxFn) (err
 	defer func() {
 		endSpan(span, err)
 	}()
-	return query(cc.db.WithContext(ctx))
+	return query(cc.conn.WithContext(ctx))
 }
 
 // QueryWithExpireCtx unmarshals into v with given key, set expire duration and query func.
@@ -206,7 +192,7 @@ func (cc CachedConn) QueryWithExpireCtx(ctx context.Context, v interface{}, key 
 		endSpan(span, err)
 	}()
 	err = cc.cache.TakeCtx(ctx, v, key, func(v interface{}) error {
-		return query(cc.db.WithContext(ctx))
+		return query(cc.conn.WithContext(ctx))
 	})
 	if err != nil {
 		return err
@@ -221,7 +207,7 @@ func (cc CachedConn) QueryWithCallbackExpireCtx(ctx context.Context, v interface
 		endSpan(span, err)
 	}()
 	err = cc.cache.TakeCtx(ctx, v, key, func(v interface{}) error {
-		return query(cc.db.WithContext(ctx))
+		return query(cc.conn.WithContext(ctx))
 	})
 	if err != nil {
 		return err
@@ -258,7 +244,7 @@ func (cc CachedConn) Transact(fn func(db *gorm.DB) error, opts ...*sql.TxOptions
 
 // TransactCtx runs given fn in transaction mode.
 func (cc CachedConn) TransactCtx(ctx context.Context, fn func(db *gorm.DB) error, opts ...*sql.TxOptions) error {
-	return cc.db.WithContext(ctx).Transaction(fn, opts...)
+	return cc.conn.WithContext(ctx).Transaction(fn, opts...)
 }
 
 var sqlAttributeKey = attribute.Key("sql.method")

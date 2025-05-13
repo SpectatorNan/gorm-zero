@@ -3,8 +3,8 @@ package mysql
 import (
 	"errors"
 	"fmt"
-	"github.com/SpectatorNan/gorm-zero/gormc/config"
-	"github.com/SpectatorNan/gorm-zero/gormc/plugins"
+	"github.com/SpectatorNan/gorm-zero/config"
+	"github.com/SpectatorNan/gorm-zero/plugins"
 	"gorm.io/driver/mysql"
 	"gorm.io/gorm"
 	"gorm.io/gorm/logger"
