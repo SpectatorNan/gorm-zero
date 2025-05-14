@@ -29,7 +29,7 @@ func (m *default{{.upperStartCamelObject}}Model) Insert(ctx context.Context, tx 
 }
 func (m *default{{.upperStartCamelObject}}Model) BatchInsert(ctx context.Context, tx *gorm.DB, news []{{.upperStartCamelObject}}) error {
 	{{if .withCache}}
-    err := batchx.BatchExecCtx(ctx, m, news, func(conn *gorm.DB) error {
+    err := batchx.BatchExecCtxV2(ctx, m, news, func(conn *gorm.DB) error {
     db := conn
     		for _, v := range news {
     			if err := db.Create(&v).Error; err != nil {
