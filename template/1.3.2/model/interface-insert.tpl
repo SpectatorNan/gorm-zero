@@ -1,1 +1,0 @@
-Insert(data *{{.upperStartCamelObject}}) error

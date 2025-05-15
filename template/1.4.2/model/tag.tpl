@@ -1,1 +1,0 @@
-`gorm:"column:{{.field}}{{if eq .field "deleted_at"}};index{{end}}"`
