@@ -2,6 +2,7 @@ package pagex
 
 import (
 	"context"
+
 	"github.com/SpectatorNan/gorm-zero/gormc"
 	"gorm.io/gorm"
 )
@@ -66,8 +67,8 @@ func FindPageList[T any](ctx context.Context, cc GormcCacheConn, page *ListReq, 
 // FindPageList
 // fn first return db, second return countDb, if count sql need special handler (example: distinct on column), you can return countDb
 // if countDb is nil, default count is first db
-func FindPageListWithCount[T any](ctx context.Context, page *ListReq, orderBy OrderBy,
-	orderKeys map[string]string, fn func() (*gorm.DB, *gorm.DB)) ([]T, int64, error) {
+func FindPageListWithCount[T any](ctx context.Context, page *ListReq, orderBy []OrderBy,
+	fn func() (*gorm.DB, *gorm.DB)) ([]T, int64, error) {
 	var res []T
 	var count int64
 
@@ -87,13 +88,16 @@ func FindPageListWithCount[T any](ctx context.Context, page *ListReq, orderBy Or
 		return nil, 0, err
 	}
 	db = db.Scopes(Paginate(page))
-	if orderStr, ok := orderKeys[orderBy.OrderKey]; ok {
-		if orderBy.Sort == tableSortDesc {
-			db = db.Order(orderStr + " desc")
-		} else {
-			db = db.Order(orderStr + " asc")
-		}
+	for _, odb := range orderBy {
+		db = db.Order(odb.OrderKey + " " + odb.Sort)
 	}
+	// if orderStr, ok := orderKeys[orderBy.OrderKey]; ok {
+	// 	if orderBy.Sort == tableSortDesc {
+	// 		db = db.Order(orderStr + " desc")
+	// 	} else {
+	// 		db = db.Order(orderStr + " asc")
+	// 	}
+	// }
 	err = db.Find(&res).Error
 
 	//err = cc.QueryNoCacheCtx(ctx, &res, func(conn *gorm.DB, v interface{}) error {
