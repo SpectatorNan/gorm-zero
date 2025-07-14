@@ -5,6 +5,9 @@ import (
 	"fmt"
 	"testing"
 
+	"github.com/SpectatorNan/gorm-zero/gormc"
+	"github.com/zeromicro/go-zero/core/stores/cache"
+	"github.com/zeromicro/go-zero/core/stores/redis"
 	"gorm.io/driver/mysql"
 	"gorm.io/gorm"
 )
@@ -39,12 +42,12 @@ func (TestUserModel) TableName() string {
 	return "user"
 }
 
-func TestPagexFindPageList(t *testing.T) {
+func TestFindPageList(t *testing.T) {
 	cfg := mysqlcfg{
 		Path:     "localhost",
 		Port:     "3306",
 		Config:   "charset%3Dutf8mb4%26parseTime%3Dtrue%26loc%3DLocal",
-		Dbname:   "gormzero",
+		Dbname:   "sui-ai",
 		Username: "root",
 		Password: "123456",
 	}
@@ -58,30 +61,69 @@ func TestPagexFindPageList(t *testing.T) {
 		return
 	}
 
-	// ccf := cache.CacheConf{
-	// 	cache.NodeConf{
-	// 		RedisConf: redis.RedisConf{
-	// 			Host: "127.0.0.1:6379",
-	// 			Pass: "",
-	// 		},
-	// 		Weight: 100,
-	// 	},
-	// }
-	// gormc := gormc.NewConn(db, ccf)
+	ccf := cache.CacheConf{
+		cache.NodeConf{
+			RedisConf: redis.RedisConf{
+				Host: "127.0.0.1:6379",
+				Pass: "",
+				Type: "node",
+			},
+			Weight: 100,
+		},
+	}
+	gormc := gormc.NewConn(db, ccf)
+	users, cnt, err := FindPageList[TestUserModel](
+		context.Background(),
+		gormc,
+		&ListReq{Page: 1, PageSize: 5},
+		[]OrderBy{
+			{OrderKey: "age", Sort: "asc"},
+			{OrderKey: "id", Sort: "asc"},
+		},
+		func(conn *gorm.DB) (*gorm.DB, *gorm.DB) {
+			d := db.Model(&TestUserModel{})
+			return d, d
+		},
+	)
+	if err != nil {
+		t.Fatalf("TestFindPageList Err,%v", err.Error())
+	}
+	fmt.Println(users, cnt)
+}
+
+func TestFindPageListWithCount(t *testing.T) {
+	cfg := mysqlcfg{
+		Path:     "localhost",
+		Port:     "3306",
+		Config:   "charset%3Dutf8mb4%26parseTime%3Dtrue%26loc%3DLocal",
+		Dbname:   "sui-ai",
+		Username: "root",
+		Password: "123456",
+	}
+	mcg := mysql.Config{
+		DSN: cfg.Dsn(),
+	}
+
+	db, err := gorm.Open(mysql.New(mcg))
+	if err != nil {
+		t.Error(err)
+		return
+	}
+
 	users, cnt, err := FindPageListWithCount[TestUserModel](
 		context.Background(),
 		&ListReq{Page: 1, PageSize: 5},
 		[]OrderBy{
 			{OrderKey: "age", Sort: "asc"},
-			{OrderKey: "id", Sort: "desc"},
+			{OrderKey: "id", Sort: "asc"},
 		},
 		func() (*gorm.DB, *gorm.DB) {
-			db := db.Model(&TestUserModel{})
-			return db, nil
+			d := db.Model(&TestUserModel{})
+			return d, nil
 		},
 	)
 	if err != nil {
-		t.Fatalf("TestPagexFindPageList Err,%v", err.Error())
+		t.Fatalf("TestFindPageListWithCount Err,%v", err.Error())
 	}
 	fmt.Println(users, cnt)
 }
