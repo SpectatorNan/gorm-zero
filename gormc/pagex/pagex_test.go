@@ -47,7 +47,7 @@ func TestFindPageList(t *testing.T) {
 		Path:     "localhost",
 		Port:     "3306",
 		Config:   "charset%3Dutf8mb4%26parseTime%3Dtrue%26loc%3DLocal",
-		Dbname:   "sui-ai",
+		Dbname:   "gormzero",
 		Username: "root",
 		Password: "123456",
 	}
@@ -96,7 +96,7 @@ func TestFindPageListWithCount(t *testing.T) {
 		Path:     "localhost",
 		Port:     "3306",
 		Config:   "charset%3Dutf8mb4%26parseTime%3Dtrue%26loc%3DLocal",
-		Dbname:   "sui-ai",
+		Dbname:   "gormzero",
 		Username: "root",
 		Password: "123456",
 	}
