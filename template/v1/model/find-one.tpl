@@ -23,7 +23,7 @@ func (m *default{{.upperStartCamelObject}}Model) FindOne(ctx context.Context, {{
 		return nil, err
 	}{{end}}
 }
-func (m *default{{.upperStartCamelObject}}Model) FindPageList(ctx context.Context, page *pagex.ListReq, orderBy pagex.OrderBy,
+func (m *default{{.upperStartCamelObject}}Model) FindPageList(ctx context.Context, page *pagex.ListReq, orderBys []pagex.OrderBy,
 	orderKeys map[string]string, whereClause func(db *gorm.DB) *gorm.DB) ([]{{.upperStartCamelObject}}, int64, error) {
 	{{if .withCache}}formatDB := func(conn *gorm.DB) (*gorm.DB, *gorm.DB) {
     		db := conn.Model(&{{.upperStartCamelObject}}{})
@@ -32,7 +32,7 @@ func (m *default{{.upperStartCamelObject}}Model) FindPageList(ctx context.Contex
     		}
     		return db, nil
     	}
-    	res, total, err := pagex.FindPageList[{{.upperStartCamelObject}}](ctx, m, page, orderBy, orderKeys, formatDB)
+    	res, total, err := pagex.FindPageListMultiOrderBy[{{.upperStartCamelObject}}](ctx, m, page, orderBys, orderKeys, formatDB)
     	return res, total, err{{else}}conn := m.conn
                                       	formatDB := func() (*gorm.DB, *gorm.DB) {
                                       		db := conn.Model(&{{.upperStartCamelObject}}{})
@@ -42,6 +42,6 @@ func (m *default{{.upperStartCamelObject}}Model) FindPageList(ctx context.Contex
                                       		return db, nil
                                       	}
 
-                                      	res, total, err := pagex.FindPageListWithCount[{{.upperStartCamelObject}}](ctx, page, orderBy, orderKeys, formatDB)
+                                      	res, total, err := pagex.FindPageListWithCountMultiOrderBy[{{.upperStartCamelObject}}](ctx, page, orderBys, orderKeys, formatDB)
                                       	return res, total, err{{end}}
 }
