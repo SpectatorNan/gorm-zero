@@ -8,7 +8,7 @@ A go-zero gorm extension. If you use go-zero, and you want to use GORM. You can 
 ```shell
 go get github.com/SpectatorNan/gorm-zero
 ```
-- Replace `template/model` in your project with `gorm-zero/template/{goctl version}/model`
+- Replace `template/model` in your project with `gorm-zero/template/v1/model`
 - Generate
 ```shell
 goctl model mysql -src={patterns} -dir={dir} -cache --home ./template
