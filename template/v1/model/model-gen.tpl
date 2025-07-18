@@ -11,3 +11,4 @@ package {{.pkg}}
 {{.delete}}
 {{.extraMethod}}
 {{.tableName}}
+{{.customized}}
