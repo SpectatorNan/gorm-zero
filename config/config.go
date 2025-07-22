@@ -1,7 +1,7 @@
 package config
 
 import (
-	"github.com/SpectatorNan/gorm-zero/logger"
+	"github.com/SpectatorNan/gorm-zero/v2/logger"
 	gormLogger "gorm.io/gorm/logger"
 	"log"
 	"os"

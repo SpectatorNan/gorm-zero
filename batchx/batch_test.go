@@ -5,8 +5,8 @@ import (
 	"errors"
 	"testing"
 
-	"github.com/SpectatorNan/gorm-zero/gormc"
-	"github.com/SpectatorNan/gorm-zero/gormx"
+	"github.com/SpectatorNan/gorm-zero/v2/gormc"
+	"github.com/SpectatorNan/gorm-zero/v2/gormx"
 	"github.com/stretchr/testify/assert"
 	"gorm.io/driver/sqlite"
 	"gorm.io/gorm"

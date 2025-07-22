@@ -4,7 +4,7 @@ import (
 	"context"
 	"database/sql"
 	"errors"
-	"github.com/SpectatorNan/gorm-zero/gormx"
+	"github.com/SpectatorNan/gorm-zero/v2/gormx"
 	"time"
 
 	"github.com/zeromicro/go-zero/core/mathx"

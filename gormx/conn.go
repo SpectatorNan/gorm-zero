@@ -38,3 +38,4 @@ func (cc Conn) ExecCtx(ctx context.Context, execCtx ExecCtxFn) (err error) {
 	}()
 	return execCtx(cc.DB.WithContext(ctx))
 }
+

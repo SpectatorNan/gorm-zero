@@ -1,7 +1,7 @@
 package queryx
 
 import (
-	pagex2 "github.com/SpectatorNan/gorm-zero/pagex"
+	pagex2 "github.com/SpectatorNan/gorm-zero/v2/pagex"
 	"gorm.io/gorm"
 )
 

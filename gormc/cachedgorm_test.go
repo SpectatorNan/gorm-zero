@@ -2,7 +2,7 @@ package gormc
 
 import (
 	"context"
-	"github.com/SpectatorNan/gorm-zero/gormx"
+	"github.com/SpectatorNan/gorm-zero/v2/gormx"
 	"github.com/zeromicro/go-zero/core/logx"
 	"github.com/zeromicro/go-zero/core/mathx"
 	"github.com/zeromicro/go-zero/core/stat"
