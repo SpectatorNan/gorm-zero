@@ -4,14 +4,14 @@ import (
 	"context"
 	"github.com/SpectatorNan/gorm-zero/v2/conn"
 	"github.com/zeromicro/go-zero/core/stores/cache"
-	"github.com/zeromicro/go-zero/core/stores/sqlx"
 	"github.com/zeromicro/go-zero/core/syncx"
+	"gorm.io/gorm"
 	"time"
 )
 
 var (
 	// ErrNotFound is an alias of sqlx.ErrNotFound.
-	ErrNotFound = sqlx.ErrNotFound
+	ErrNotFound = gorm.ErrRecordNotFound
 
 	// can't use one SingleFlight per conn, because multiple conns may share the same cache key.
 	singleFlights = syncx.NewSingleFlight()
