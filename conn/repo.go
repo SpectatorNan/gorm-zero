@@ -240,6 +240,10 @@ func (r CommonRepo[T]) Delete(models ...*T) (result gen.ResultInfo, err error) {
 }
 
 func (r *CommonRepo[T]) withDO(do gen.Dao) *CommonRepo[T] {
+	// 创建新的 CommonRepo 实例而不是修改现有的
 	r.DO = *do.(*gen.DO)
 	return r
+	//newRepo := &CommonRepo[T]{}
+	//newRepo.DO = *do.(*gen.DO)
+	//return newRepo
 }

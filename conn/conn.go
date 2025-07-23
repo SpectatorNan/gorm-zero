@@ -15,11 +15,11 @@ type Conn[T any] struct {
 // NewConn creates a new connection with the given gorm.DB and options.
 func NewConn[T any](db *gorm.DB, opts ...gen.DOOption) Conn[T] {
 
-	repo := CommonRepo[T]{}
+	repo := &CommonRepo[T]{}
 	var model T
 	repo.UseDB(db, opts...)
 	repo.UseModel(&model)
-	return NewConnWithRepo(db, repo, opts...)
+	return NewConnWithRepo[T](db, repo, opts...)
 }
 
 func NewConnWithRepo[T any](db *gorm.DB, repo Repository[T], opts ...gen.DOOption) Conn[T] {
