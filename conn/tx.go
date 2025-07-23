@@ -30,3 +30,7 @@ func (c *ConnTx) SavePoint(name string) error {
 func (c *ConnTx) RollbackTo(name string) error {
 	return c.db.RollbackTo(name).Error
 }
+
+func (c *ConnTx) UnderlyingDB() *gorm.DB {
+	return c.db
+}
