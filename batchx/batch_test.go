@@ -3,10 +3,10 @@ package batchx
 import (
 	"context"
 	"errors"
+	"github.com/SpectatorNan/gorm-zero/v2/deprecated/gormc"
+	"github.com/SpectatorNan/gorm-zero/v2/deprecated/gormx"
 	"testing"
 
-	"github.com/SpectatorNan/gorm-zero/v2/gormc"
-	"github.com/SpectatorNan/gorm-zero/v2/gormx"
 	"github.com/stretchr/testify/assert"
 	"gorm.io/driver/sqlite"
 	"gorm.io/gorm"

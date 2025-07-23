@@ -2,8 +2,8 @@ package batchx
 
 import (
 	"context"
-	"github.com/SpectatorNan/gorm-zero/v2/gormc"
-	"github.com/SpectatorNan/gorm-zero/v2/gormx"
+	"github.com/SpectatorNan/gorm-zero/v2/deprecated/gormc"
+	"github.com/SpectatorNan/gorm-zero/v2/deprecated/gormx"
 	"gorm.io/gorm"
 )
 
