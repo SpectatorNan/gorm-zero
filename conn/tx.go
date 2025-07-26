@@ -11,9 +11,13 @@ type ConnTx struct {
 	opts  []gen.DOOption // Store options
 }
 
-func NewConnFromTx[T any](tx *ConnTx) Conn[T] {
-	return NewConn[T](tx.db, tx.opts...)
+func NewConnFromTx(tx *ConnTx) *Conn {
+	return NewConn(tx.db)
 }
+
+//func NewConnFromTx[T any](tx *ConnTx) ConnOld[T] {
+//	return NewConnOld[T](tx.db, tx.opts...)
+//}
 
 func (c *ConnTx) Commit() error {
 	return c.db.Commit().Error

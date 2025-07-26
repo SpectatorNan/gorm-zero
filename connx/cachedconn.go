@@ -13,7 +13,8 @@ import (
 
 type (
 	CachedConn[T any] struct {
-		Conn               conn.Conn[T]
+		//Conn               conn.ConnOld[T]
+		repo               conn.CommonRepo[T]
 		cache              cache.Cache
 		unstableExpiryTime mathx.Unstable
 		cacheKeyProvider   ICacheKey[T] // 显式依赖缓存键提供者
@@ -26,8 +27,7 @@ type (
 	}
 )
 
-// missing query cache with expire set
-func NewCachedConn[T any](db *gorm.DB, c cache.CacheConf, cacheKeyProvider ICacheKey[T], opts ...Option) CachedConn[T] {
+func NewCachedConn[T any](cn *conn.Conn, c cache.CacheConf, cacheKeyProvider ICacheKey[T], opts ...Option) CachedConn[T] {
 	cOpts := make([]cache.Option, 0)
 	gOpts := make([]gen.DOOption, 0)
 	for _, opt := range opts {
@@ -35,14 +35,38 @@ func NewCachedConn[T any](db *gorm.DB, c cache.CacheConf, cacheKeyProvider ICach
 		gOpts = append(gOpts, opt.genOpts...)
 	}
 	cc := cache.New(c, singleFlights, stats, ErrNotFound, cOpts...)
-	return NewCachedConnWithCache[T](db, cc, cacheKeyProvider, gOpts...)
+	return NewCachedConnWithCache[T](cn, cc, cacheKeyProvider, gOpts...)
+}
+func NewCachedConnWithCache[T any](cn *conn.Conn, c cache.Cache, cacheKeyProvider ICacheKey[T], opts ...gen.DOOption) CachedConn[T] {
+	repo := conn.NewCommonRepo[T](cn, opts...)
+	return CachedConn[T]{
+		repo:               repo,
+		cache:              c,
+		unstableExpiryTime: mathx.NewUnstable(expiryDeviation),
+		cacheKeyProvider:   cacheKeyProvider, // 使用传入的缓存键提供者
+		span:               trace.SpanFrom(traceName, spanName),
+	}
 }
 
-func NewCachedConnWithCache[T any](db *gorm.DB, c cache.Cache, cacheKeyProvider ICacheKey[T], opts ...gen.DOOption) CachedConn[T] {
-	condb := conn.NewConn[T](db, opts...)
+// missing query cache with expire set
+func NewCachedConnWithDB[T any](db *gorm.DB, c cache.CacheConf, cacheKeyProvider ICacheKey[T], opts ...Option) CachedConn[T] {
+	cOpts := make([]cache.Option, 0)
+	gOpts := make([]gen.DOOption, 0)
+	for _, opt := range opts {
+		cOpts = append(cOpts, opt.cacheOpts...)
+		gOpts = append(gOpts, opt.genOpts...)
+	}
+	cc := cache.New(c, singleFlights, stats, ErrNotFound, cOpts...)
+	return NewCachedConnWithCacheWithDB[T](db, cc, cacheKeyProvider, gOpts...)
+}
 
+func NewCachedConnWithCacheWithDB[T any](db *gorm.DB, c cache.Cache, cacheKeyProvider ICacheKey[T], opts ...gen.DOOption) CachedConn[T] {
+	//condb := conn.NewConnOld[T](db, opts...)
+	cn := conn.NewConn(db)
+	repo := conn.NewCommonRepo[T](cn, opts...)
 	return CachedConn[T]{
-		Conn:               condb,
+		//Conn:               condb,
+		repo:               repo,
 		cache:              c,
 		unstableExpiryTime: mathx.NewUnstable(expiryDeviation),
 		cacheKeyProvider:   cacheKeyProvider, // 使用传入的缓存键提供者
@@ -58,7 +82,7 @@ func (cc CachedConn[T]) QueryCtx(ctx context.Context, key string, result any, qu
 
 	err := cc.span.With(ctx, "QueryCtx", func(ctx context.Context) error {
 		return cc.cache.TakeCtx(ctx, &result, key, func(val any) error {
-			err := query(cc.Conn.WithContext(ctx))
+			err := query(cc.repo.WithContext(ctx))
 			if err != nil {
 				return err
 			}
@@ -74,7 +98,7 @@ func (cc CachedConn[T]) QueryCtx(ctx context.Context, key string, result any, qu
 
 func (cc CachedConn[T]) QueryNoCache(ctx context.Context, query DoFn[T]) error {
 	err := cc.span.With(ctx, "QueryNocCache", func(ctx context.Context) error {
-		err := query(cc.Conn.WithContext(ctx))
+		err := query(cc.repo.WithContext(ctx))
 		if err != nil {
 			return err
 		}
@@ -88,7 +112,7 @@ func (cc CachedConn[T]) QueryNoCache(ctx context.Context, query DoFn[T]) error {
 
 func (cc CachedConn[T]) DoCtx(ctx context.Context, doFn DoFn[T], keys ...string) error {
 	return cc.span.With(ctx, "DoCtx", func(ctx context.Context) error {
-		err := doFn(cc.Conn.WithContext(ctx))
+		err := doFn(cc.repo.WithContext(ctx))
 		if err != nil {
 			return err
 		}
@@ -104,7 +128,7 @@ func (cc CachedConn[T]) DoCtx(ctx context.Context, doFn DoFn[T], keys ...string)
 func (cc CachedConn[T]) doBatchProcess(
 	ctx context.Context,
 	datas []*T,
-	processFn func(repo conn.Conn[T], data *T) error,
+	processFn func(repo conn.CommonRepo[T], data *T) error,
 	opts ...DoBatchOption,
 ) error {
 	options := &DoBatchOptions{
@@ -122,8 +146,9 @@ func (cc CachedConn[T]) doBatchProcess(
 
 		return cc.DoBatch(ctx, func(repo conn.Repository[T]) error {
 			if options.Tx == nil {
-				return cc.Conn.Transaction(func(tx *conn.ConnTx) error {
-					txConn := conn.NewConnFromTx[T](tx)
+				return cc.repo.Transaction(func(tx *conn.ConnTx) error {
+					//txConn := conn.NewConnFromTx[T](tx)
+
 					for i := 0; i < len(datas); i += options.BatchSize {
 						end := i + options.BatchSize
 						if end > len(datas) {
@@ -138,8 +163,25 @@ func (cc CachedConn[T]) doBatchProcess(
 					}
 					return nil
 				})
+
+				//return cc.Conn.Transaction(func(tx *conn.ConnTx) error {
+				//	txConn := conn.NewConnFromTx[T](tx)
+				//	for i := 0; i < len(datas); i += options.BatchSize {
+				//		end := i + options.BatchSize
+				//		if end > len(datas) {
+				//			end = len(datas)
+				//		}
+				//		batch := datas[i:end]
+				//		for _, data := range batch {
+				//			if err := processFn(txConn, data); err != nil {
+				//				return err
+				//			}
+				//		}
+				//	}
+				//	return nil
+				//})
 			} else {
-				//txConn := conn.NewConn[T](options.Tx, cc.Conn.opts...)
+				//txConn := conn.NewConn[T](options.Tx, cc.ConnOld.opts...)
 				txConn := conn.NewConnFromTx[T](options.Tx) // 使用传入的事务
 				for i := 0; i < len(datas); i += options.BatchSize {
 					end := i + options.BatchSize
@@ -162,7 +204,7 @@ func (cc CachedConn[T]) doBatchProcess(
 func (cc CachedConn[T]) doBatchProcessMulti(
 	ctx context.Context,
 	datas []*T,
-	processFn func(repo conn.Conn[T], data []*T) error,
+	processFn func(repo conn.ConnOld[T], data []*T) error,
 	opts ...DoBatchOption,
 ) error {
 	options := &DoBatchOptions{
@@ -216,7 +258,7 @@ func (cc CachedConn[T]) doBatchProcessMulti(
 func (cc CachedConn[T]) DoBatchUpdate(
 	ctx context.Context,
 	datas []*T,
-	updateFn func(repo conn.Conn[T], data *T) error,
+	updateFn func(repo conn.CommonRepo[T], data *T) error,
 	opts ...DoBatchOption,
 ) error {
 	return cc.doBatchProcess(ctx, datas, updateFn, opts...)
@@ -226,7 +268,7 @@ func (cc CachedConn[T]) DoBatchUpdate(
 func (cc CachedConn[T]) DoBatchDelete(
 	ctx context.Context,
 	datas []*T,
-	deleteFn func(repo conn.Conn[T], data *T) error,
+	deleteFn func(repo conn.CommonRepo[T], data *T) error,
 	opts ...DoBatchOption,
 ) error {
 	return cc.doBatchProcess(ctx, datas, deleteFn, opts...)
@@ -257,7 +299,7 @@ func (cc CachedConn[T]) DoBatchCreate(ctx context.Context, datas []*T, opts ...D
 func (cc CachedConn[T]) DoBatchCreateCustom(
 	ctx context.Context,
 	datas []*T,
-	createFn func(repo conn.Conn[T], data []*T) error,
+	createFn func(repo conn.ConnOld[T], data []*T) error,
 	opts ...DoBatchOption,
 ) error {
 	return cc.doBatchProcessMulti(ctx, datas, createFn, opts...)
@@ -272,7 +314,7 @@ func (cc CachedConn[T]) DoBatch(ctx context.Context, doFn DoFn[T], opts ...DoBat
 		opt(options)
 	}
 	return cc.span.With(ctx, "DoBatch", func(ctx context.Context) error {
-		conn := cc.Conn.WithContext(ctx)
+		conn := cc.repo.WithContext(ctx)
 		if options.Tx != nil {
 			conn.ReplaceDB(options.Tx.UnderlyingDB())
 		}
@@ -360,7 +402,7 @@ func (cc CachedConn[T]) QueryRowIndexCtx(ctx context.Context, v *T, key string,
 		if err := cc.cache.TakeWithExpireCtx(ctx, &primaryKey, key,
 			func(val any, expire time.Duration) (err error) {
 				// Index cache miss, execute index query to get primary key
-				primaryKey, err = indexQuery(ctx, cc.Conn.WithContext(ctx))
+				primaryKey, err = indexQuery(ctx, cc.repo.WithContext(ctx))
 				if err != nil {
 					return err
 				}
@@ -380,7 +422,7 @@ func (cc CachedConn[T]) QueryRowIndexCtx(ctx context.Context, v *T, key string,
 
 		// Otherwise, get data from primary key cache
 		return cc.cache.TakeCtx(ctx, v, keyer(primaryKey), func(v any) error {
-			return primaryQuery(ctx, cc.Conn.WithContext(ctx), primaryKey)
+			return primaryQuery(ctx, cc.repo.WithContext(ctx), primaryKey)
 		})
 	})
 }

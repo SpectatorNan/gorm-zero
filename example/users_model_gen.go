@@ -264,7 +264,7 @@ func (m *defaultUsersModel) BatchUpdate(ctx context.Context, tx *conn.ConnTx, ne
 		opts = append(opts, connx.WithTx(tx))
 	}
 
-	return m.usersDo.DoBatchUpdate(ctx, news, func(repo conn.Conn[Users], data *Users) error {
+	return m.usersDo.DoBatchUpdate(ctx, news, func(repo conn.CommonRepo[Users], data *Users) error {
 		return repo.Save(data)
 	}, opts...)
 }
@@ -296,7 +296,7 @@ func (m *defaultUsersModel) BatchDelete(ctx context.Context, tx *conn.ConnTx, da
 		opts = append(opts, connx.WithTx(tx))
 	}
 
-	return m.usersDo.DoBatchDelete(ctx, datas, func(repo conn.Conn[Users], data *Users) error {
+	return m.usersDo.DoBatchDelete(ctx, datas, func(repo conn.ConnOld[Users], data *Users) error {
 		_, err := repo.Where(m.Id.Eq(data.Id)).Delete()
 		return err
 	}, opts...)

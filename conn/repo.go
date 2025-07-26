@@ -2,6 +2,7 @@ package conn
 
 import (
 	"context"
+	"database/sql"
 	"gorm.io/gen"
 	"gorm.io/gen/field"
 	"gorm.io/gorm"
@@ -12,8 +13,21 @@ import (
 
 type CommonRepo[T any] struct {
 	gen.DO
+	conn *Conn
 }
 
+func NewCommonRepo[T any](conn *Conn, opts ...gen.DOOption) CommonRepo[T] {
+	repo := CommonRepo[T]{
+		conn: conn,
+	}
+	var model T
+	repo.UseDB(conn.DB(), opts...)
+	repo.UseModel(&model)
+	return repo
+}
+func (r CommonRepo[T]) Transaction(fc func(tx *ConnTx) error, opts ...*sql.TxOptions) error {
+	return r.conn.Transaction(fc, opts...)
+}
 func (r CommonRepo[T]) Debug() Repository[T] {
 	return r.withDO(r.DO.Debug())
 }

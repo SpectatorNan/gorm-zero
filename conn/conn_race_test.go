@@ -43,7 +43,7 @@ func getTestUserColumns() TestUserColumns {
 type ConnRaceTestSuite struct {
 	suite.Suite
 	db       *gorm.DB
-	testConn Conn[TestUser]
+	testConn ConnOld[TestUser]
 }
 
 // SetupSuite 在整个测试套件开始前执行一次
